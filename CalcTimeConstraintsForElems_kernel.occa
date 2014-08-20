@@ -1,3 +1,5 @@
+#include<kernelDefines.occa>
+
 occaKernel
 void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 					const Index_t occaVariable length,
@@ -64,6 +66,7 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 	i += occaGlobalDim0;
       }
 
+      const int tid = occaInnerId0;
       s_mindthydro[tid]   = mindthydro;
       s_mindtcourant[tid] = mindtcourant;
     }
@@ -84,6 +87,7 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
     dev_mindthydro[occaOuterId0] = mindtHydro;
 
 #else
+    const int tid = occaInnerId0;
     // Do shared memory reduction
     if (block_size >= 1024) {
       if (tid < 512) {

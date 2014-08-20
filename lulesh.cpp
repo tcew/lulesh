@@ -1,12 +1,13 @@
-#include<occa.hpp>
+#include <occa.hpp>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <assert.h>
 
-#define LULESH_SHOW_PROGRESS 0
+#define LULESH_SHOW_PROGRESS 1
 #define DOUBLE_PRECISION
 //#define SAMI
 
@@ -66,6 +67,20 @@ typedef real4  Real_t ;  /* floating point representation */
  */
 #define PAD_DIV(nbytes, align)  (((nbytes) + (align) - 1) / (align))
 #define PAD(nbytes, align)  (PAD_DIV((nbytes),(align)) * (align))
+
+template <typename T>
+void occaCheck(occa::memory &a){
+  const int n = a.bytes()/sizeof(T);
+
+  if(n){
+    std::vector<T> testA(n);
+
+    a.copyTo(&(testA[0]));
+
+    for(int i=0; i<n; i++)
+      assert(testA[i] == testA[i]);
+  }
+}
 
 
 Real_t CalcElemVolumeTemp( const Real_t x0, const Real_t x1,
@@ -190,6 +205,7 @@ occa::kernel ApplyMaterialPropertiesAndUpdateVolume_kernel;
 occa::kernel CalcTimeConstraintsForElems_kernel;
 occa::kernel CalcMinDtOneBlock;
 occa::kernel FillKernel;
+occa::kernel ZeroKernel;
 
 class Domain
 {
@@ -373,6 +389,82 @@ public:
 
 } ;
 
+
+void occaCheckDomain(Domain *domain){
+
+  occaCheck<Index_t>(domain->matElemlist);
+  occaCheck<Index_t>(domain->nodelist);
+  occaCheck<Index_t>(domain->lxim);
+  occaCheck<Index_t>(domain->lxip);
+  occaCheck<Index_t>(domain->letam);
+  occaCheck<Index_t>(domain->letap);
+  occaCheck<Index_t>(domain->lzetam);
+  occaCheck<Index_t>(domain->lzetap);
+
+  occaCheck<Int_t>(domain->elemBC);
+
+  occaCheck<Real_t>(domain->e);
+  occaCheck<Real_t>(domain->p);
+  occaCheck<Real_t>(domain->q);
+  occaCheck<Real_t>(domain->ql);
+  occaCheck<Real_t>(domain->qq);
+  occaCheck<Real_t>(domain->v);
+  occaCheck<Real_t>(domain->volo);
+  occaCheck<Real_t>(domain->delv);
+  occaCheck<Real_t>(domain->vdov);
+  occaCheck<Real_t>(domain->arealg);
+  occaCheck<Real_t>(domain->ss);
+  occaCheck<Real_t>(domain->elemMass);
+
+  occaCheck<Real_t>(domain->vnew);
+  occaCheck<Real_t>(domain->delv_xi);
+  occaCheck<Real_t>(domain->delv_eta);
+  occaCheck<Real_t>(domain->delv_zeta);
+  occaCheck<Real_t>(domain->delx_xi);
+  occaCheck<Real_t>(domain->delx_eta);
+  occaCheck<Real_t>(domain->delx_zeta);
+  occaCheck<Real_t>(domain->dxx);
+  occaCheck<Real_t>(domain->dyy);
+
+  occaCheck<Real_t>(domain->x);
+  occaCheck<Real_t>(domain->y);
+  occaCheck<Real_t>(domain->z);
+
+
+  occaCheck<Real_t>(domain->tex_x);
+  occaCheck<Real_t>(domain->tex_y);
+  occaCheck<Real_t>(domain->tex_z);
+
+  occaCheck<Real_t>(domain->xd);
+  occaCheck<Real_t>(domain->yd);
+  occaCheck<Real_t>(domain->zd);
+
+
+  occaCheck<Real_t>(domain->tex_xd);
+  occaCheck<Real_t>(domain->tex_yd);
+  occaCheck<Real_t>(domain->tex_zd);
+
+  occaCheck<Real_t>(domain->xdd);
+  occaCheck<Real_t>(domain->ydd);
+  occaCheck<Real_t>(domain->zdd);
+
+  occaCheck<Real_t>(domain->fx);
+  occaCheck<Real_t>(domain->fy);
+  occaCheck<Real_t>(domain->fz);
+
+  occaCheck<Real_t>(domain->nodalMass);
+
+  occaCheck<Index_t>(domain->symmX);
+  occaCheck<Index_t>(domain->symmY);
+  occaCheck<Index_t>(domain->symmZ);
+
+  occaCheck<Int_t>(domain->nodeElemCount);
+  occaCheck<Int_t>(domain->nodeElemStart);
+  occaCheck<Index_t>(domain->nodeElemCornerList);
+
+}
+
+
 // void cuda_init()
 // {
 //     Int_t deviceCount, dev;
@@ -414,8 +506,10 @@ static void buildLuleshKernels(){
 
 #ifdef DOUBLE_PRECISION
   defs.addDefine("Real_t", "double");
+  defs.addDefine("DOUBLE_PRECISION", 1);
 #else
   defs.addDefine("Real_t", "float");
+  defs.addDefine("DOUBLE_PRECISION", 0);
 #endif
   defs.addDefine("Index_t", "int");
   defs.addDefine("Int_t", "int");
@@ -451,21 +545,23 @@ static void buildLuleshKernels(){
     ("CalcMonotonicQRegionForElems_kernel.occa",
      "CalcMonotonicQRegionForElems_kernel", defs);
 
-  ApplyAccelerationBoundaryConditionsForNodes_kernel =
+  ApplyMaterialPropertiesAndUpdateVolume_kernel =
     occaHandle.buildKernelFromSource
-    ("ApplyAccelerationBoundaryCondtionsForNodes_kernel.occa",
-     "ApplyAccelerationBoundaryConditionsForNodes_kernel",
-     defs);
+    ("ApplyMaterialPropertiesAndUpdateVolume_kernel.occa",
+     "ApplyMaterialPropertiesAndUpdateVolume_kernel", defs);
 
+  const int simdWidth = 32;
   {
     const int block_size = 128;
+
     occa::kernelInfo defs1 = defs;
 
     defs1.addDefine("block_size", block_size);
+    defs1.addDefine("simdWidth", simdWidth);
     CalcTimeConstraintsForElems_kernel =
       occaHandle.buildKernelFromSource
       ("CalcTimeConstraintsForElems_kernel.occa",
-       "CalcTimeConstraintsForElems_kernel", defs);
+       "CalcTimeConstraintsForElems_kernel", defs1);
   }
 
   {
@@ -474,16 +570,22 @@ static void buildLuleshKernels(){
     occa::kernelInfo defs1 = defs;
 
     defs1.addDefine("block_size", max_dimGrid);
+    defs1.addDefine("simdWidth", simdWidth);
+
     CalcMinDtOneBlock =
       occaHandle.buildKernelFromSource
-      ("CalMinDtOneBlock.occa.occa",
+      ("CalcMinDtOneBlock.occa",
        "CalcMinDtOneBlock", defs1);
   }
 
 
   FillKernel =
     occaHandle.buildKernelFromSource
-    ("Fill_kernel.occa", "FillKernel", defs);
+    ("Fill_kernel.occa", "Fill_kernel", defs);
+
+  ZeroKernel =
+    occaHandle.buildKernelFromSource
+    ("Zero_kernel.occa", "Zero_kernel");
 
   {
     occa::kernelInfo defs1 = defs;
@@ -504,39 +606,75 @@ static void buildLuleshKernels(){
       ("CalcVolumeForceForElems_kernel.occa",
        "CalcVolumeForceForElems_kernel", defs1);
   }
+
 }
 
 
 static void occa_init(){
 
+  int plat = 0;
   int dev = 0;
 
-  occaHandle.setup(dev);
+  occaHandle.setup("CUDA", plat, dev);
 
   buildLuleshKernels();
 
 }
 
 #define MAX_THREAD_BLOCKS 65535
+
+occa::memory occaMalloc(const size_t nbytes, void *host_ptr = NULL){
+
+  occa::memory a;
+
+  if(host_ptr != NULL){
+
+    a = occaHandle.malloc(nbytes, host_ptr);
+
+  }
+  else{
+
+    a = occaHandle.malloc(nbytes);
+
+    size_t dim = 1;
+    occa::dim inner(256);
+
+    int nblocks = (nbytes + 255)/256;
+
+    if(nblocks > MAX_THREAD_BLOCKS)
+      nblocks = MAX_THREAD_BLOCKS;
+
+    occa::dim outer(nblocks);
+
+    ZeroKernel.setWorkingDims(dim, inner, outer);
+
+    ZeroKernel(nbytes, a);
+  }
+
+  return a;
+
+}
+
 void fill(occa::memory &a, Real_t val){
 
   // TODO:
   const int block_size = 256;
   const int n = a.bytes()/sizeof(Real_t);
 
-  int numBlocks = (n+block_size-1)/block_size;
+  if(n){
+    int numBlocks = (n+block_size-1)/block_size;
 
-  if(numBlocks > MAX_THREAD_BLOCKS)
-    numBlocks = MAX_THREAD_BLOCKS;
+    if(numBlocks > MAX_THREAD_BLOCKS)
+      numBlocks = MAX_THREAD_BLOCKS;
 
-  size_t dims = 1;
-  occa::dim inner(block_size);
-  occa::dim outer(numBlocks);
+    size_t dims = 1;
+    occa::dim inner(block_size);
+    occa::dim outer(numBlocks);
 
-  FillKernel.setWorkingDims(dims, inner, outer);
+    FillKernel.setWorkingDims(dims, inner, outer);
 
-  FillKernel(n, val, a);
-
+    FillKernel(n, val, a);
+  }
 }
 
 
@@ -546,9 +684,9 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->x.resize(domNodes) ;  /* coordinates */
   // domain->y.resize(domNodes) ;
   // domain->z.resize(domNodes) ;
-  domain->x = occaHandle.malloc(domNodes*sizeof(Real_t));
-  domain->y = occaHandle.malloc(domNodes*sizeof(Real_t));
-  domain->z = occaHandle.malloc(domNodes*sizeof(Real_t));
+  domain->x = occaMalloc(domNodes*sizeof(Real_t));
+  domain->y = occaMalloc(domNodes*sizeof(Real_t));
+  domain->z = occaMalloc(domNodes*sizeof(Real_t));
 
   // TODO:
   // domain->tex_x.initialize(domain->x.raw(),domNodes);
@@ -563,9 +701,9 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->xd.resize(domNodes) ; /* velocities */
   // domain->yd.resize(domNodes) ;
   // domain->zd.resize(domNodes) ;
-  domain->xd = occaHandle.malloc(domNodes*sizeof(Real_t));
-  domain->yd = occaHandle.malloc(domNodes*sizeof(Real_t));
-  domain->zd = occaHandle.malloc(domNodes*sizeof(Real_t));
+  domain->xd = occaMalloc(domNodes*sizeof(Real_t));
+  domain->yd = occaMalloc(domNodes*sizeof(Real_t));
+  domain->zd = occaMalloc(domNodes*sizeof(Real_t));
 
   // TODO: use textures instead of global
   // domain->tex_xd.initialize(domain->xd.raw(),domNodes);
@@ -579,26 +717,26 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->xdd.resize(domNodes) ; /* accelerations */
   // domain->ydd.resize(domNodes) ;
   // domain->zdd.resize(domNodes) ;
-  domain->xdd = occaHandle.malloc(domNodes*sizeof(Real_t));
-  domain->ydd = occaHandle.malloc(domNodes*sizeof(Real_t));
-  domain->zdd = occaHandle.malloc(domNodes*sizeof(Real_t));
+  domain->xdd = occaMalloc(domNodes*sizeof(Real_t));
+  domain->ydd = occaMalloc(domNodes*sizeof(Real_t));
+  domain->zdd = occaMalloc(domNodes*sizeof(Real_t));
 
   // domain->fx.resize(domNodes) ;  /* forces */
   // domain->fy.resize(domNodes) ;
   // domain->fz.resize(domNodes) ;
-  domain->fx = occaHandle.malloc(domNodes*sizeof(Real_t));
-  domain->fy = occaHandle.malloc(domNodes*sizeof(Real_t));
-  domain->fz = occaHandle.malloc(domNodes*sizeof(Real_t));
+  domain->fx = occaMalloc(domNodes*sizeof(Real_t));
+  domain->fy = occaMalloc(domNodes*sizeof(Real_t));
+  domain->fz = occaMalloc(domNodes*sizeof(Real_t));
 
   //  domain->nodalMass.resize(domNodes) ;  /* mass */
-  domain->nodalMass = occaHandle.malloc(domNodes*sizeof(Real_t));
+  domain->nodalMass = occaMalloc(domNodes*sizeof(Real_t));
 }
 
 void AllocateElemPersistent(Domain* domain, size_t domElems, size_t padded_domElems){
    // domain->matElemlist.resize(domElems) ;  /* material indexset */
    // domain->nodelist.resize(8*padded_domElems) ;   /* elemToNode connectivity */
-  domain->matElemlist = occaHandle.malloc(domElems*sizeof(Index_t));
-  domain->nodelist = occaHandle.malloc(8*padded_domElems*sizeof(Index_t));
+  domain->matElemlist = occaMalloc(domElems*sizeof(Index_t));
+  domain->nodelist = occaMalloc(8*padded_domElems*sizeof(Index_t));
 
   // domain->lxim.resize(domElems) ; /* elem connectivity through face */
   // domain->lxip.resize(domElems) ;
@@ -606,15 +744,15 @@ void AllocateElemPersistent(Domain* domain, size_t domElems, size_t padded_domEl
   // domain->letap.resize(domElems) ;
   // domain->lzetam.resize(domElems) ;
   // domain->lzetap.resize(domElems) ;
-  domain->lxim = occaHandle.malloc(domElems*sizeof(Index_t));
-  domain->lxip = occaHandle.malloc(domElems*sizeof(Index_t));
-  domain->letam = occaHandle.malloc(domElems*sizeof(Index_t));
-  domain->letap = occaHandle.malloc(domElems*sizeof(Index_t));
-  domain->lzetam = occaHandle.malloc(domElems*sizeof(Index_t));
-  domain->lzetap = occaHandle.malloc(domElems*sizeof(Index_t));
+  domain->lxim = occaMalloc(domElems*sizeof(Index_t));
+  domain->lxip = occaMalloc(domElems*sizeof(Index_t));
+  domain->letam = occaMalloc(domElems*sizeof(Index_t));
+  domain->letap = occaMalloc(domElems*sizeof(Index_t));
+  domain->lzetam = occaMalloc(domElems*sizeof(Index_t));
+  domain->lzetap = occaMalloc(domElems*sizeof(Index_t));
 
   // domain->elemBC.resize(domElems) ;  /* elem face symm/free-surf flag */
-  domain->elemBC = occaHandle.malloc(domElems*sizeof(Int_t));
+  domain->elemBC = occaMalloc(domElems*sizeof(Int_t));
 
   // domain->e.resize(domElems) ;   /* energy */
   // domain->p.resize(domElems) ;   /* pressure */
@@ -635,35 +773,35 @@ void AllocateElemPersistent(Domain* domain, size_t domElems, size_t padded_domEl
 
   // domain->elemMass.resize(domElems) ;  /* mass */
 
-  domain->e = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->p = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->q = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->ql = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->qq = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->v = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->volo = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->delv = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->vdov = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->arealg = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->ss = occaHandle.malloc(domElems*sizeof(Real_t));
-  domain->elemMass = occaHandle.malloc(domElems*sizeof(Real_t));
+  domain->e = occaMalloc(domElems*sizeof(Real_t));
+  domain->p = occaMalloc(domElems*sizeof(Real_t));
+  domain->q = occaMalloc(domElems*sizeof(Real_t));
+  domain->ql = occaMalloc(domElems*sizeof(Real_t));
+  domain->qq = occaMalloc(domElems*sizeof(Real_t));
+  domain->v = occaMalloc(domElems*sizeof(Real_t));
+  domain->volo = occaMalloc(domElems*sizeof(Real_t));
+  domain->delv = occaMalloc(domElems*sizeof(Real_t));
+  domain->vdov = occaMalloc(domElems*sizeof(Real_t));
+  domain->arealg = occaMalloc(domElems*sizeof(Real_t));
+  domain->ss = occaMalloc(domElems*sizeof(Real_t));
+  domain->elemMass = occaMalloc(domElems*sizeof(Real_t));
 
 
 }
 
 void AllocateSymmX(Domain* domain, size_t size){
   // domain->symmX.resize(size) ;
-  domain->symmX = occaHandle.malloc(size*sizeof(Index_t));
+  domain->symmX = occaMalloc(size*sizeof(Index_t));
 }
 
 void AllocateSymmY(Domain* domain, size_t size){
   // domain->symmY.resize(size) ;
-  domain->symmY = occaHandle.malloc(size*sizeof(Index_t));
+  domain->symmY = occaMalloc(size*sizeof(Index_t));
 }
 
 void AllocateSymmZ(Domain* domain, size_t size){
   // domain->symmZ.resize(size) ;
-  domain->symmZ = occaHandle.malloc(size*sizeof(Index_t));
+  domain->symmZ = occaMalloc(size*sizeof(Index_t));
 }
 
 void InitializeFields(Domain* domain){
@@ -695,6 +833,42 @@ void InitializeFields(Domain* domain){
 
   // thrust::fill(domain->nodalMass.begin(),domain->nodalMass.end(),0.);
   fill(domain->nodalMass, 0.);
+
+
+
+
+
+
+  // fill(domain->ql, 0.);
+  // fill(domain->qq, 0.);
+  // fill(domain->volo, 0.);
+  // fill(domain->delv, 0.);
+  // fill(domain->vdov, 0.);
+  // fill(domain->arealg, 0.);
+  // fill(domain->elemMass, 0.);
+  // fill(domain->vnew, 0.);
+  // fill(domain->delv_xi, 0.);
+  // fill(domain->delv_eta, 0.);
+  // fill(domain->delv_zeta, 0.);
+  // fill(domain->dxx, 0.);
+  // fill(domain->dyy, 0.);
+
+  // fill(domain->x, 0.);
+  // fill(domain->y, 0.);
+  // fill(domain->z, 0.);
+
+  // fill(domain->tex_x, 0.);
+  // fill(domain->tex_y, 0.);
+  // fill(domain->tex_z, 0.);
+
+
+  // fill(domain->tex_xd, 0.);
+  // fill(domain->tex_yd, 0.);
+  // fill(domain->tex_zd, 0.);
+
+  // fill(domain->fx, 0.);
+  // fill(domain->fy, 0.);
+  // fill(domain->fz, 0.);
 }
 
 Domain *NewDomain(char* argv[], Index_t nx, bool structured)
@@ -1215,9 +1389,11 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
   // domain->nodeElemStart = nodeElemStart_h;
   // domain->nodeElemCount = nodeElemCount_h;
   // domain->nodeElemCornerList = nodeElemCornerList_h;
-  domain->nodeElemStart.copyFrom(&(nodeElemStart_h[0]));
-  domain->nodeElemCount.copyFrom(&(nodeElemCount_h[0]));
-  domain->nodeElemCornerList.copyFrom(&(nodeElemCornerList_h[0]));
+
+  domain->nodeElemStart = occaMalloc(domNodes*sizeof(Index_t), &(nodeElemStart_h[0]));
+  domain->nodeElemCount = occaMalloc(domNodes*sizeof(Index_t), &(nodeElemCount_h[0]));
+  domain->nodeElemCornerList = occaMalloc(nodeElemCornerList_h.size()*sizeof(Index_t), &(nodeElemCornerList_h[0]));
+
 
   /* Create a material IndexSet (entire domain same material for now) */
   // Vector_h<Index_t> matElemlist_h(domElems);
@@ -1226,7 +1402,7 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
      matElemlist_h[i] = i ;
   }
   //  domain->matElemlist = matElemlist_h;
-  domain->matElemlist.copyFrom(&(matElemlist_h[0]));
+  domain->matElemlist = occaMalloc(domElems*sizeof(Index_t), &(matElemlist_h[0]));
 
   // cudaMallocHost(&domain->dtcourant_h,sizeof(Real_t),0);
   // cudaMallocHost(&domain->dthydro_h,sizeof(Real_t),0);
@@ -1387,9 +1563,9 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
     // occa::memory* fy_elem = Allocator<occa::memeory >::allocate(padded_numElem*8);
     // occa::memory* fz_elem = Allocator<occa::memeory >::allocate(padded_numElem*8);
 
-    occa::memory fx_elem = occaHandle.malloc(padded_numElem*8*sizeof(Real_t));
-    occa::memory fy_elem = occaHandle.malloc(padded_numElem*8*sizeof(Real_t));
-    occa::memory fz_elem = occaHandle.malloc(padded_numElem*8*sizeof(Real_t));
+    occa::memory fx_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
+    occa::memory fy_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
+    occa::memory fz_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
 
 #else
     // thrust::fill(domain->fx.begin(),domain->fx.end(),0.);
@@ -1728,16 +1904,27 @@ void LagrangeNodal(Domain *domain)
 
   Real_t u_cut = domain->u_cut ;
 
+  occaCheckDomain(domain);
+
   CalcForceForNodes(domain);
+
+  occaCheckDomain(domain);
 
   TimeIncrement(domain);
 
+  occaCheckDomain(domain);
+
   CalcAccelerationForNodes(domain);
+
+  occaCheckDomain(domain);
 
   ApplyAccelerationBoundaryConditionsForNodes(domain);
 
+  occaCheckDomain(domain);
+
   CalcPositionAndVelocityForNodes(u_cut, domain);
 
+  occaCheckDomain(domain);
   return;
 }
 
@@ -1945,6 +2132,9 @@ void ApplyMaterialPropertiesAndUpdateVolume(Domain *domain)
          domain->v_cut,
          domain->bad_vol_h);
 
+
+    occaCheck<Real_t>(domain->e);
+
     //cudaDeviceSynchronize();
     //cudaCheckError();
   }
@@ -1969,10 +2159,10 @@ void LagrangeElements(Domain *domain)
   // domain->dyy  = Allocator< occa::memory >::allocate(domain->numElem);
   // domain->dzz  = Allocator< occa::memory >::allocate(domain->numElem);
 
-  domain->vnew = occaHandle.malloc(domain->numElem*sizeof(Real_t));
-  domain->dxx = occaHandle.malloc(domain->numElem*sizeof(Real_t));
-  domain->dyy = occaHandle.malloc(domain->numElem*sizeof(Real_t));
-  domain->dzz = occaHandle.malloc(domain->numElem*sizeof(Real_t));
+  domain->vnew = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->dxx = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->dyy = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->dzz = occaMalloc(domain->numElem*sizeof(Real_t));
 
   // domain->delx_xi    = Allocator< Vector_d<Real_t> >::allocate(domain->numElem);
   // domain->delx_eta   = Allocator< Vector_d<Real_t> >::allocate(domain->numElem);
@@ -1990,17 +2180,19 @@ void LagrangeElements(Domain *domain)
   // domain->delv_zeta  = Allocator< occa::memory >::allocate(allElem);
 
 
-  domain->delx_xi    = occaHandle.malloc(domain->numElem*sizeof(Real_t));
-  domain->delx_eta   = occaHandle.malloc(domain->numElem*sizeof(Real_t));
-  domain->delx_zeta  = occaHandle.malloc(domain->numElem*sizeof(Real_t));
-  domain->delv_xi    = occaHandle.malloc(allElem*sizeof(Real_t));
-  domain->delv_eta   = occaHandle.malloc(allElem*sizeof(Real_t));
-  domain->delv_zeta  = occaHandle.malloc(allElem*sizeof(Real_t));
+  domain->delx_xi    = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->delx_eta   = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->delx_zeta  = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->delv_xi    = occaMalloc(allElem*sizeof(Real_t));
+  domain->delv_eta   = occaMalloc(allElem*sizeof(Real_t));
+  domain->delv_zeta  = occaMalloc(allElem*sizeof(Real_t));
 
   /*********************************************/
   /*  Calc Kinematics and Monotic Q Gradient   */
   /*********************************************/
+  occaCheckDomain(domain);
   CalcKinematicsAndMonotonicQGradient(domain);
+  occaCheckDomain(domain);
 
   // Allocator<Vector_d<Real_t> >::free(domain->dxx,domain->numElem);
   // Allocator<Vector_d<Real_t> >::free(domain->dyy,domain->numElem);
@@ -2022,8 +2214,9 @@ void LagrangeElements(Domain *domain)
   /**********************************
   *    Calc Monotic Q Region
   **********************************/
-   CalcMonotonicQRegionForElems(domain);
-
+  occaCheckDomain(domain);
+  CalcMonotonicQRegionForElems(domain);
+  occaCheckDomain(domain);
   // Allocator<Vector_d<Real_t> >::free(domain->delx_xi,domain->numElem);
   // Allocator<Vector_d<Real_t> >::free(domain->delx_eta,domain->numElem);
   // Allocator<Vector_d<Real_t> >::free(domain->delx_zeta,domain->numElem);
@@ -2045,8 +2238,9 @@ void LagrangeElements(Domain *domain)
    domain->delv_eta.free();
    domain->delv_zeta.free();
 
+  occaCheckDomain(domain);
   ApplyMaterialPropertiesAndUpdateVolume(domain) ;
-
+  occaCheckDomain(domain);
   //  Allocator<Vector_d<Real_t> >::free(domain->vnew,domain->numElem);
   // Allocator<occa::memory >::free(domain->vnew,domain->numElem);
   domain->vnew.free();
@@ -2055,81 +2249,87 @@ void LagrangeElements(Domain *domain)
 
 
 static inline
-void CalcTimeConstraintsForElems(Domain* domain)
-{
-    Real_t qqc = domain->qqc;
-    Real_t qqc2 = Real_t(64.0) * qqc * qqc ;
-    Real_t dvovmax = domain->dvovmax ;
+void CalcTimeConstraintsForElems(Domain* domain){
 
-    const Index_t length = domain->numElem;
+  Real_t qqc = domain->qqc;
+  Real_t qqc2 = Real_t(64.0) * qqc * qqc ;
+  Real_t dvovmax = domain->dvovmax ;
 
-    const int max_dimGrid = 1024;
-    const int dimBlock = 128;
-    int dimGrid=std::min(max_dimGrid,PAD_DIV(length,dimBlock));
+  const Index_t length = domain->numElem;
 
-    size_t dims = 1;
-    occa::dim inner(dimBlock);
-    occa::dim outer(dimGrid);
+  const int max_dimGrid = 1024;
+  const int dimBlock = 128;
+  int dimGrid=std::min(max_dimGrid,PAD_DIV(length,dimBlock));
 
-    // TODO: whats this?
-    // cudaFuncSetCacheConfig(CalcTimeConstraintsForElems_kernel<dimBlock>, cudaFuncCachePreferShared);
+  size_t dims = 1;
+  occa::dim inner(dimBlock);
+  occa::dim outer(dimGrid);
 
-    // Vector_d<Real_t>* dev_mindtcourant= Allocator< Vector_d<Real_t> >::allocate(dimGrid);
-    // Vector_d<Real_t>* dev_mindthydro  = Allocator< Vector_d<Real_t> >::allocate(dimGrid);
+  // TODO: whats this?
+  // cudaFuncSetCacheConfig(CalcTimeConstraintsForElems_kernel<dimBlock>, cudaFuncCachePreferShared);
 
-    // occa::memory* dev_mindtcourant= Allocator< occa::memory >::allocate(dimGrid);
-    // occa::memory* dev_mindthydro  = Allocator< occa::memory >::allocate(dimGrid);
-    occa::memory dev_mindtcourant = occaHandle.malloc(dimGrid*sizeof(Real_t));
-    occa::memory dev_mindthydro = occaHandle.malloc(dimGrid*sizeof(Real_t));
+  // Vector_d<Real_t>* dev_mindtcourant= Allocator< Vector_d<Real_t> >::allocate(dimGrid);
+  // Vector_d<Real_t>* dev_mindthydro  = Allocator< Vector_d<Real_t> >::allocate(dimGrid);
 
-    // CalcTimeConstraintsForElems_kernel<dimBlock> <<<dimGrid,dimBlock>>>
-    //     (length,qqc2,dvovmax,
-    //      domain->matElemlist.raw(),domain->ss.raw(),domain->vdov.raw(),domain->arealg.raw(),
-    //      dev_mindtcourant->raw(),dev_mindthydro->raw());
+  // occa::memory* dev_mindtcourant= Allocator< occa::memory >::allocate(dimGrid);
+  // occa::memory* dev_mindthydro  = Allocator< occa::memory >::allocate(dimGrid);
+  occa::memory dev_mindtcourant = occaMalloc(dimGrid*sizeof(Real_t));
+  occa::memory dev_mindthydro = occaMalloc(dimGrid*sizeof(Real_t));
+
+  // CalcTimeConstraintsForElems_kernel<dimBlock> <<<dimGrid,dimBlock>>>
+  //     (length,qqc2,dvovmax,
+  //      domain->matElemlist.raw(),domain->ss.raw(),domain->vdov.raw(),domain->arealg.raw(),
+  //      dev_mindtcourant->raw(),dev_mindthydro->raw());
 
 
-    // TODO: careful with dimBlock template variable
-    CalcTimeConstraintsForElems_kernel.setWorkingDims(dims, inner, outer);
+  // TODO: careful with dimBlock template variable
+  CalcTimeConstraintsForElems_kernel.setWorkingDims(dims, inner, outer);
 
-    CalcTimeConstraintsForElems_kernel
-      (length,qqc2,dvovmax,
-       domain->matElemlist,
-       domain->ss,
-       domain->vdov,
-       domain->arealg,
-       dev_mindtcourant,
-       dev_mindthydro);
+  occaCheckDomain(domain);
 
-    // TODO: if dimGrid < 1024, should launch less threads
-    // CalcMinDtOneBlock<max_dimGrid> <<<2,max_dimGrid, max_dimGrid*sizeof(Real_t), domain->streams[1]>>>(dev_mindthydro->raw(),dev_mindtcourant->raw(),domain->dtcourant_h,domain->dthydro_h, dimGrid);
+  CalcTimeConstraintsForElems_kernel
+    (length,qqc2,dvovmax,
+     domain->matElemlist,
+     domain->ss,
+     domain->vdov,
+     domain->arealg,
+     dev_mindtcourant,
+     dev_mindthydro);
 
-    dims = 1;
-    inner.x = max_dimGrid;
-    outer.x = 2;
-    CalcMinDtOneBlock.setWorkingDims(dims, inner, outer);
+  occaCheckDomain(domain);
+  // TODO: if dimGrid < 1024, should launch less threads
+  // CalcMinDtOneBlock<max_dimGrid> <<<2,max_dimGrid, max_dimGrid*sizeof(Real_t), domain->streams[1]>>>(dev_mindthydro->raw(),dev_mindtcourant->raw(),domain->dtcourant_h,domain->dthydro_h, dimGrid);
 
-    occa::memory dtcourant_d = occaHandle.malloc(sizeof(Real_t), domain->dtcourant_h);
-    occa::memory dthydro_d = occaHandle.malloc(sizeof(Real_t), domain->dthydro_h);
+  dims = 1;
+  inner.x = max_dimGrid;
+  outer.x = 2;
+  CalcMinDtOneBlock.setWorkingDims(dims, inner, outer);
 
-    // TODO: add occa get stream and set stream
-    CalcMinDtOneBlock(dev_mindthydro,
-		      dev_mindtcourant,
-		      dtcourant_d,
-		      dthydro_d, dimGrid);
+  occa::memory dtcourant_d = occaMalloc(sizeof(Real_t), domain->dtcourant_h);
+  occa::memory dthydro_d = occaMalloc(sizeof(Real_t), domain->dthydro_h);
 
-    // cudaEventRecord(domain->time_constraint_computed,domain->streams[1]);
+  occaCheckDomain(domain);
 
-    // Allocator<Vector_d<Real_t> >::free(dev_mindtcourant,dimGrid);
-    // Allocator<Vector_d<Real_t> >::free(dev_mindthydro,dimGrid);
+  // TODO: add occa get stream and set stream
+  CalcMinDtOneBlock(dev_mindthydro,
+		    dev_mindtcourant,
+		    dtcourant_d,
+		    dthydro_d, dimGrid);
 
-    // Allocator<occa::memory >::free(dev_mindtcourant,dimGrid);
-    // Allocator<occa::memory >::free(dev_mindthydro,dimGrid);
+  occaCheckDomain(domain);
+  // cudaEventRecord(domain->time_constraint_computed,domain->streams[1]);
 
-    dev_mindtcourant.free();
-    dev_mindthydro.free();
+  // Allocator<Vector_d<Real_t> >::free(dev_mindtcourant,dimGrid);
+  // Allocator<Vector_d<Real_t> >::free(dev_mindthydro,dimGrid);
 
-    dtcourant_d.free();
-    dthydro_d.free();
+  // Allocator<occa::memory >::free(dev_mindtcourant,dimGrid);
+  // Allocator<occa::memory >::free(dev_mindthydro,dimGrid);
+
+  dev_mindtcourant.free();
+  dev_mindthydro.free();
+
+  dtcourant_d.free();
+  dthydro_d.free();
 
 }
 
@@ -2335,8 +2535,12 @@ int main(int argc, char *argv[])
   // cuda_init();
   occa_init();
 
+  printf("OCCA device and kernels are initialized \n");
+
   /* assume cube subdomain geometry for now */
   Index_t nx = atoi(argv[2]);
+
+  printf("nx = %d\n", nx);
 
   Domain *locDom ;
   locDom = NewDomain(argv,nx,structured) ;
@@ -2372,6 +2576,8 @@ int main(int argc, char *argv[])
     printf("time = %e, dt=%e\n", double(locDom->time_h), double(locDom->deltatime_h) ) ;
 #endif
     its++;
+
+    break;
   }
 
   double timer_stop = occa::currentTime();

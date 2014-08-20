@@ -1,3 +1,5 @@
+#include<kernelDefines.occa>
+
 occaDeviceFunction void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8], const Real_t zn[8],
 					   const Real_t dvdxn[8], const Real_t dvdyn[8], const Real_t dvdzn[8],
 					   Real_t hourgam[8][4], Real_t volinv){
@@ -408,6 +410,11 @@ occaDeviceFunction void CalcElemNodeNormals(Real_t pfx[8],
 #ifndef hourg_gt_zero
 #define hourg_gt_zero true
 #endif
+
+#define occaReadOnly const
+#define occaTexture Real_t *occaRestrict
+#define occaTextFetch1D(a, id) a[id]
+
 //template< bool hourg_gt_zero >
 occaKernel
 void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
@@ -419,7 +426,7 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 				    const Index_t occaVariable numElem,
 				    const Index_t occaVariable padded_numElem,
 				    const occaPointer Index_t* occaRestrict nodelist,
-				    const occaPointer Real_t* occaRestrictss,
+				    const occaPointer Real_t* occaRestrict ss,
 				    const occaPointer Real_t* occaRestrict elemMass,
 				    occaReadOnly occaTexture x,
 				    occaReadOnly occaTexture y,
@@ -427,7 +434,7 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 				    occaReadOnly occaTexture xd,
 				    occaReadOnly occaTexture yd,
 				    occaReadOnly occaTexture zd,
-#ifdef DOUBLE_PRECISION // For floats, use atomicAdd
+#if DOUBLE_PRECISION // For floats, use atomicAdd
 				    occaPointer Real_t* occaRestrict fx_elem,
 				    occaPointer Real_t* occaRestrict fy_elem,
 				    occaPointer Real_t* occaRestrict fz_elem,
@@ -543,7 +550,7 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 	    &hgfx[0],&hgfy[0],&hgfz[0]);
       }
 
-#ifdef DOUBLE_PRECISION
+#if DOUBLE_PRECISION
 #pragma unroll
       for (int node=0;node<8;node++){
 	const Index_t store_loc = elem+padded_numElem*node;

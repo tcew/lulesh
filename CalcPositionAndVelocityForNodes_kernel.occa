@@ -1,3 +1,6 @@
+
+#include<kernelDefines.occa>
+
 occaKernel void
 CalcPositionAndVelocityForNodes_kernel(occaKernelInfoArg,
 				       const int occaVariable numNode,
@@ -15,6 +18,7 @@ CalcPositionAndVelocityForNodes_kernel(occaKernelInfoArg,
 
   occaGlobalFor0{
     // int i=blockDim.x*blockIdx.x+threadIdx.x;
+    const int i = occaGlobalId0;
     if (i < numNode){
 
       Real_t xdtmp, ydtmp, zdtmp, dt;

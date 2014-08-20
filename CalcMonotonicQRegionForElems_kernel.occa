@@ -1,3 +1,5 @@
+#include<kernelDefines.occa>
+
 occaKernel
 void CalcMonotonicQRegionForElems_kernel(occaKernelInfoArg,
 					 const Real_t occaVariable qlc_monoq,

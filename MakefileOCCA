@@ -20,6 +20,12 @@ LINKFLAGS =
 flags = -I${OCCA_DIR}/include -I. -m64
 libs   =  -L/usr/lib -L${OCCA_DIR}/lib -locca -lmpich -llapack -lblas -lm -ldl
 
+ifeq ($(DEBUG), 1)
+	       flags += -g
+else
+	flags += -O3 -DNDEBUG
+endif
+
 lulesh: lulesh.cpp
 	$(CC) $(flags) lulesh.cpp -o lulesh $(libs)
 

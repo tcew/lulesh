@@ -1,4 +1,6 @@
 
+#include<kernelDefines.occa>
+
 occaDeviceFunction
 void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,
                       Real_t *xv, Real_t *yv, Real_t *zv,
@@ -182,34 +184,34 @@ void CalcElemCharacteristicLength( const Real_t x[8],
   Real_t a;
   Real_t cL = Real_t(0.0);
 
-  a = AreaFace(x[0],x[1],x[2],x[3],
-	       y[0],y[1],y[2],y[3],
-	       z[0],z[1],z[2],z[3]) ; // 38
+  AreaFace(x[0],x[1],x[2],x[3],
+	   y[0],y[1],y[2],y[3],
+	   z[0],z[1],z[2],z[3], &a) ; // 38
   cL = FMAX(a,cL) ;
 
-  a = AreaFace(x[4],x[5],x[6],x[7],
-	       y[4],y[5],y[6],y[7],
-	       z[4],z[5],z[6],z[7]) ;
+  AreaFace(x[4],x[5],x[6],x[7],
+	   y[4],y[5],y[6],y[7],
+	   z[4],z[5],z[6],z[7], &a) ;
   cL = FMAX(a,cL) ;
 
-  a = AreaFace(x[0],x[1],x[5],x[4],
-	       y[0],y[1],y[5],y[4],
-	       z[0],z[1],z[5],z[4]) ;
+  AreaFace(x[0],x[1],x[5],x[4],
+	   y[0],y[1],y[5],y[4],
+	   z[0],z[1],z[5],z[4], &a) ;
   cL = FMAX(a,cL) ;
 
-  a = AreaFace(x[1],x[2],x[6],x[5],
-	       y[1],y[2],y[6],y[5],
-	       z[1],z[2],z[6],z[5]) ;
+  AreaFace(x[1],x[2],x[6],x[5],
+	   y[1],y[2],y[6],y[5],
+	   z[1],z[2],z[6],z[5], &a) ;
   cL = FMAX(a,cL) ;
 
-  a = AreaFace(x[2],x[3],x[7],x[6],
-	       y[2],y[3],y[7],y[6],
-	       z[2],z[3],z[7],z[6]) ;
+  AreaFace(x[2],x[3],x[7],x[6],
+	   y[2],y[3],y[7],y[6],
+	   z[2],z[3],z[7],z[6], &a) ;
   cL = FMAX(a,cL) ;
 
-  a = AreaFace(x[3],x[0],x[4],x[7],
-	       y[3],y[0],y[4],y[7],
-	       z[3],z[0],z[4],z[7]) ;
+  AreaFace(x[3],x[0],x[4],x[7],
+	   y[3],y[0],y[4],y[7],
+	   z[3],z[0],z[4],z[7], &a) ;
   cL = FMAX(a,cL) ;
 
   cL = Real_t(4.0) * volume / SQRT(cL);
@@ -299,7 +301,8 @@ void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg,
 
 	delv[k] = relativeVolume - v[k] ;
 	// set characteristic length
-	arealg[k] = CalcElemCharacteristicLength(x_local,y_local,z_local,volume);
+	// arealg[k] = CalcElemCharacteristicLength(x_local,y_local,z_local,volume);
+	CalcElemCharacteristicLength(x_local,y_local,z_local,volume, &(arealg[k]));
 
 	// get nodal velocities from global array and copy into local arrays.
 #pragma unroll
