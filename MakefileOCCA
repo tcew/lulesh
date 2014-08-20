@@ -1,0 +1,27 @@
+#SILO_INCLUDES := /usr/local/silo-4.8/include
+#SILO_LIBS := /usr/local/silo-4.8/lib
+
+LINKFLAGS =
+#LINKFLAGS += -L$(SILO_LIBS) -lsilo
+
+#INC_SILO:= -I$(SILO_INCLUDES)
+
+# all: release
+
+# debug: LINKFLAGS += -G -g
+
+# release: 	FLAGS += $(RFLAGS)
+# debug: 		FLAGS += $(DFLAGS)
+
+# release: lulesh
+# debug: lulesh
+
+
+flags = -I${OCCA_DIR}/include -I. -m64
+libs   =  -L/usr/lib -L${OCCA_DIR}/lib -locca -lmpich -llapack -lblas -lm -ldl
+
+lulesh: lulesh.cpp
+	$(CC) $(flags) lulesh.cpp -o lulesh
+
+clean:
+	rm -rf allocator.o  lulesh
