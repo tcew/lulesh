@@ -217,6 +217,10 @@ void CalcElemCharacteristicLength( const Real_t x[8],
   *charLength = cL;
 }
 
+// TODO: use texture memory instead of global
+#define occaReadOnly
+#define occaTexture1D Real_t* occaRestrict
+#define occaTextFetch1D(a, i) a[i]
 
 occaKernel
 void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg,

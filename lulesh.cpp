@@ -269,7 +269,11 @@ public:
   // TextureObj<Real_t> tex_x;
   // TextureObj<Real_t> tex_y;
   // TextureObj<Real_t> tex_z;
-  occa::textMem tex_x, tex_y, tex_z;
+
+  // TODO: use textures instead of global
+  //  occa::textMem tex_x, tex_y, tex_z;
+  occa::memory tex_x, tex_y, tex_z;
+
 
   // Vector_d<Real_t> xd ;           /* velocities */
   // Vector_d<Real_t> yd ;
@@ -279,7 +283,10 @@ public:
   // TextureObj<Real_t> tex_xd;
   // TextureObj<Real_t> tex_yd;
   // TextureObj<Real_t> tex_zd;
-  occa::textMem tex_xd, tex_yd, tex_zd;
+
+  // TODO: use textures instead of global
+  // occa::textMem tex_xd, tex_yd, tex_zd;
+  occa::memory tex_xd, tex_yd, tex_zd;
 
 
   // Vector_d<Real_t> xdd ;          /* accelerations */
@@ -410,8 +417,8 @@ static void buildLuleshKernels(){
 #else
   defs.addDefine("Real_t", "float");
 #endif
-  defs.addDefine("Index_t", int);
-  defs.addDefine("Int_t", int);
+  defs.addDefine("Index_t", "int");
+  defs.addDefine("Int_t", "int");
 
   AddNodeForcesFromElems_kernel =
     occaHandle.buildKernelFromSource
@@ -548,6 +555,11 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->tex_y.initialize(domain->y.raw(),domNodes);
   // domain->tex_z.initialize(domain->z.raw(),domNodes);
 
+  domain->tex_x = domain->x;
+  domain->tex_y = domain->y;
+  domain->tex_z = domain->z;
+
+
   // domain->xd.resize(domNodes) ; /* velocities */
   // domain->yd.resize(domNodes) ;
   // domain->zd.resize(domNodes) ;
@@ -555,10 +567,14 @@ void AllocateNodalPersistent(Domain* domain,
   domain->yd = occaHandle.malloc(domNodes*sizeof(Real_t));
   domain->zd = occaHandle.malloc(domNodes*sizeof(Real_t));
 
-  // TODO:
+  // TODO: use textures instead of global
   // domain->tex_xd.initialize(domain->xd.raw(),domNodes);
   // domain->tex_yd.initialize(domain->yd.raw(),domNodes);
   // domain->tex_zd.initialize(domain->zd.raw(),domNodes);
+
+  domain->tex_xd = domain->xd;
+  domain->tex_yd = domain->yd;
+  domain->tex_zd = domain->zd;
 
   // domain->xdd.resize(domNodes) ; /* accelerations */
   // domain->ydd.resize(domNodes) ;
