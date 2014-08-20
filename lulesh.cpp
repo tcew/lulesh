@@ -403,82 +403,100 @@ public:
 
 static void buildLuleshKernels(){
 
-  // TODO:
-  const int block_size = 128; // ?
-
   occa::kernelInfo defs;
 
-  defs.addDefine("block_size", block_size);
-
-  // add defines for Index_t, Real_t
-
+#ifdef DOUBLE_PRECISION
+  defs.addDefine("Real_t", "double");
+#else
+  defs.addDefine("Real_t", "float");
+#endif
+  defs.addDefine("Index_t", int);
+  defs.addDefine("Int_t", int);
 
   AddNodeForcesFromElems_kernel =
     occaHandle.buildKernelFromSource
-    ("lulesh.occa",
+    ("AddNodeForcesFromElems_kernel.occa",
      "AddNodeForcesFromElems_kernel", defs);
 
   CalcAccelerationForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("lulesh.occa",
+    ("CalcAccelerationForNodes_kernel.occa",
      "CalcAccelerationForNodes_kernel", defs);
 
   ApplyAccelerationBoundaryConditionsForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("lulesh.occa",
+    ("ApplyAccelerationBoundaryConditionsForNodes_kernel.occa",
      "ApplyAccelerationBoundaryConditionsForNodes_kernel",
      defs);
 
   CalcPositionAndVelocityForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("lules.occa",
+    ("CalcPositionAndVelocityForNodes_kernel.occa",
      "CalcPositionAndVelocityForNodes_kernel", defs);
 
   CalcKinematicsAndMonotonicQGradient_kernel =
     occaHandle.buildKernelFromSource
-    ("lulesh.occa",
+    ("CalcKinematicsAndMonotonicQGradient_kernel.occa",
      "CalcKinematicsAndMonotonicQGradient_kernel", defs);
 
   CalcMonotonicQRegionForElems_kernel =
     occaHandle.buildKernelFromSource
-    ("lulesh.occa",
+    ("CalcMonotonicQRegionForElems_kernel.occa",
      "CalcMonotonicQRegionForElems_kernel", defs);
 
   ApplyAccelerationBoundaryConditionsForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("lulesh.occa",
+    ("ApplyAccelerationBoundaryCondtionsForNodes_kernel.occa",
      "ApplyAccelerationBoundaryConditionsForNodes_kernel",
      defs);
 
-  CalcTimeConstraintsForElems_kernel =
-    occaHandle.buildKernelFromSource
-    ("lulesh.occa",
-     "CalcTimeConstraintsForElems_kernel", defs);
+  {
+    const int block_size = 128;
+    occa::kernelInfo defs1 = defs;
 
-  CalcMinDtOneBlock =
-    occaHandle.buildKernelFromSource
-    ("lulesh.occa", "CalcMinDtOneBlock", defs);
+    defs1.addDefine("block_size", block_size);
+    CalcTimeConstraintsForElems_kernel =
+      occaHandle.buildKernelFromSource
+      ("CalcTimeConstraintsForElems_kernel.occa",
+       "CalcTimeConstraintsForElems_kernel", defs);
+  }
+
+  {
+
+    const int max_dimGrid = 1024;
+    occa::kernelInfo defs1 = defs;
+
+    defs1.addDefine("block_size", max_dimGrid);
+    CalcMinDtOneBlock =
+      occaHandle.buildKernelFromSource
+      ("CalMinDtOneBlock.occa.occa",
+       "CalcMinDtOneBlock", defs1);
+  }
+
 
   FillKernel =
     occaHandle.buildKernelFromSource
-    ("lulesh.occa", "FillKernel");
+    ("Fill_kernel.occa", "FillKernel", defs);
 
+  {
+    occa::kernelInfo defs1 = defs;
 
-  occa::kernelInfo defs1 = defs;
-  occa::kernelInfo defs2 = defs;
+    defs1.addDefine("hourg_gt_zero", "true");
+    CalcVolumeForceForElems_kernel_true =
+      occaHandle.buildKernelFromSource
+      ("CalcVolumeForceForElems_kernel.occa",
+       "CalcVolumeForceForElems_kernel", defs1);
+  }
 
-  defs1.addDefine("hourg_gt_zero", "true");
-  defs2.addDefine("hourg_gt_zero", "false");
+  {
+    occa::kernelInfo defs1 = defs;
+    defs1.addDefine("hourg_gt_zero", "false");
 
-  CalcVolumeForceForElems_kernel_true =
-    occaHandle.buildKernelFromSource
-    ("lulesh.occa",
-     "CalcVolumeForceForElems_kernel", defs1);
-
-  CalcVolumeForceForElems_kernel_false =
-    occaHandle.buildKernelFromSource
-    ("lulesh.occa",
-     "CalcVolumeForceForElems_kernel", defs2);
+    CalcVolumeForceForElems_kernel_false =
+      occaHandle.buildKernelFromSource
+      ("CalcVolumeForceForElems_kernel.occa",
+       "CalcVolumeForceForElems_kernel", defs1);
+  }
 }
 
 
