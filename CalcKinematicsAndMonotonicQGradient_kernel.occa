@@ -5,12 +5,12 @@ occaDeviceFunction
 void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,
                       Real_t *xv, Real_t *yv, Real_t *zv,
                       Real_t vol,
-                      Real_t *delx_zeta,
-                      Real_t *delv_zeta,
-                      Real_t *delx_xi,
-                      Real_t *delv_xi,
-                      Real_t *delx_eta,
-                      Real_t *delv_eta){
+                      occaPointer Real_t *delx_zeta,
+                      occaPointer Real_t *delv_zeta,
+                      occaPointer Real_t *delx_xi,
+                      occaPointer Real_t *delv_xi,
+                      occaPointer Real_t *delx_eta,
+                      occaPointer Real_t *delv_eta){
 
 #define SUM4(a,b,c,d) (a + b + c + d)
   const Real_t ptiny = Real_t(1.e-36) ;
