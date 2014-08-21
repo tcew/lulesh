@@ -124,7 +124,7 @@ occaDeviceFunction void CalcElemVolumeTemp( const Real_t x0, const Real_t x1,
 					const Real_t z4, const Real_t z5,
 					const Real_t z6, const Real_t z7,
 					Real_t *volume){
-  Real_t twelveth = Real_t(1.0)/Real_t(12.0);
+  Real_t twelveth = cast_Real_t(1.0)/cast_Real_t(12.0);
 
   Real_t dx61 = x6 - x1;
   Real_t dy61 = y6 - y1;
@@ -235,17 +235,17 @@ void CalcElemShapeFunctionDerivatives( const Real_t* const x,
   Real_t cjyxi, cjyet, cjyze;
   Real_t cjzxi, cjzet, cjzze;
 
-  fjxxi = Real_t(.125) * ( (x6-x0) + (x5-x3) - (x7-x1) - (x4-x2) );
-  fjxet = Real_t(.125) * ( (x6-x0) - (x5-x3) + (x7-x1) - (x4-x2) );
-  fjxze = Real_t(.125) * ( (x6-x0) + (x5-x3) + (x7-x1) + (x4-x2) );
+  fjxxi = cast_Real_t(.125) * ( (x6-x0) + (x5-x3) - (x7-x1) - (x4-x2) );
+  fjxet = cast_Real_t(.125) * ( (x6-x0) - (x5-x3) + (x7-x1) - (x4-x2) );
+  fjxze = cast_Real_t(.125) * ( (x6-x0) + (x5-x3) + (x7-x1) + (x4-x2) );
 
-  fjyxi = Real_t(.125) * ( (y6-y0) + (y5-y3) - (y7-y1) - (y4-y2) );
-  fjyet = Real_t(.125) * ( (y6-y0) - (y5-y3) + (y7-y1) - (y4-y2) );
-  fjyze = Real_t(.125) * ( (y6-y0) + (y5-y3) + (y7-y1) + (y4-y2) );
+  fjyxi = cast_Real_t(.125) * ( (y6-y0) + (y5-y3) - (y7-y1) - (y4-y2) );
+  fjyet = cast_Real_t(.125) * ( (y6-y0) - (y5-y3) + (y7-y1) - (y4-y2) );
+  fjyze = cast_Real_t(.125) * ( (y6-y0) + (y5-y3) + (y7-y1) + (y4-y2) );
 
-  fjzxi = Real_t(.125) * ( (z6-z0) + (z5-z3) - (z7-z1) - (z4-z2) );
-  fjzet = Real_t(.125) * ( (z6-z0) - (z5-z3) + (z7-z1) - (z4-z2) );
-  fjzze = Real_t(.125) * ( (z6-z0) + (z5-z3) + (z7-z1) + (z4-z2) );
+  fjzxi = cast_Real_t(.125) * ( (z6-z0) + (z5-z3) - (z7-z1) - (z4-z2) );
+  fjzet = cast_Real_t(.125) * ( (z6-z0) - (z5-z3) + (z7-z1) - (z4-z2) );
+  fjzze = cast_Real_t(.125) * ( (z6-z0) + (z5-z3) + (z7-z1) + (z4-z2) );
 
   /* compute cofactors */
   cjxxi =    (fjyet * fjzze) - (fjzet * fjyze);
@@ -292,5 +292,5 @@ void CalcElemShapeFunctionDerivatives( const Real_t* const x,
   b[2][7] = -b[2][1];
 
   /* calculate jacobian determinant (volume) */
-  *volume = Real_t(8.) * ( fjxet * cjxet + fjyet * cjyet + fjzet * cjzet);
+  *volume = cast_Real_t(8.) * ( fjxet * cjxet + fjyet * cjyet + fjzet * cjzet);
 }

@@ -506,9 +506,11 @@ static void buildLuleshKernels(){
 
 #ifdef DOUBLE_PRECISION
   defs.addDefine("Real_t", "double");
+  defs.addDefine("cast_Real_t(a)", "((double)a)");
   defs.addDefine("DOUBLE_PRECISION", 1);
 #else
   defs.addDefine("Real_t", "float");
+  defs.addDefine("cast_Real_t(a)", "((float)a)");
   defs.addDefine("DOUBLE_PRECISION", 0);
 #endif
   defs.addDefine("Index_t", "int");
@@ -615,7 +617,7 @@ static void occa_init(){
   int plat = 0;
   int dev = 0;
 
-  occaHandle.setup("CUDA", plat, dev);
+  occaHandle.setup("OpenCL", plat, dev);
 
   buildLuleshKernels();
 

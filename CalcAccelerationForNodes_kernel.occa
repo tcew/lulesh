@@ -14,7 +14,7 @@ void CalcAccelerationForNodes_kernel(occaKernelInfoArg,
     const int tid = occaGlobalId0;
 
     if (tid < numNode){
-      const Real_t one_over_nMass = Real_t(1.)/nodalMass[tid];
+      const Real_t one_over_nMass = cast_Real_t(1.)/nodalMass[tid];
       xdd[tid]=fx[tid]*one_over_nMass;
       ydd[tid]=fy[tid]*one_over_nMass;
       zdd[tid]=fz[tid]*one_over_nMass;

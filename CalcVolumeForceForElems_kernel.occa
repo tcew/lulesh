@@ -244,7 +244,7 @@ occaDeviceFunction void VoluDer(const Real_t x0, const Real_t x1, const Real_t x
 				const Real_t z3, const Real_t z4, const Real_t z5,
 				Real_t* dvdx, Real_t* dvdy, Real_t* dvdz){
 
-  const Real_t twelfth = Real_t(1.0) / Real_t(12.0) ;
+  const Real_t twelfth = cast_Real_t(1.0) / cast_Real_t(12.0) ;
 
   *dvdx =
     (y1 + y2) * (z0 + z1) - (y0 + y1) * (z1 + z2) +
@@ -325,15 +325,15 @@ SumElemFaceNormal(Real_t *normalX0, Real_t *normalY0, Real_t *normalZ0,
 		  const Real_t x3, const Real_t y3, const Real_t z3){
 
 
-  Real_t bisectX0 = Real_t(0.5) * (x3 + x2 - x1 - x0);
-  Real_t bisectY0 = Real_t(0.5) * (y3 + y2 - y1 - y0);
-  Real_t bisectZ0 = Real_t(0.5) * (z3 + z2 - z1 - z0);
-  Real_t bisectX1 = Real_t(0.5) * (x2 + x1 - x3 - x0);
-  Real_t bisectY1 = Real_t(0.5) * (y2 + y1 - y3 - y0);
-  Real_t bisectZ1 = Real_t(0.5) * (z2 + z1 - z3 - z0);
-  Real_t areaX = Real_t(0.25) * (bisectY0 * bisectZ1 - bisectZ0 * bisectY1);
-  Real_t areaY = Real_t(0.25) * (bisectZ0 * bisectX1 - bisectX0 * bisectZ1);
-  Real_t areaZ = Real_t(0.25) * (bisectX0 * bisectY1 - bisectY0 * bisectX1);
+  Real_t bisectX0 = cast_Real_t(0.5) * (x3 + x2 - x1 - x0);
+  Real_t bisectY0 = cast_Real_t(0.5) * (y3 + y2 - y1 - y0);
+  Real_t bisectZ0 = cast_Real_t(0.5) * (z3 + z2 - z1 - z0);
+  Real_t bisectX1 = cast_Real_t(0.5) * (x2 + x1 - x3 - x0);
+  Real_t bisectY1 = cast_Real_t(0.5) * (y2 + y1 - y3 - y0);
+  Real_t bisectZ1 = cast_Real_t(0.5) * (z2 + z1 - z3 - z0);
+  Real_t areaX = cast_Real_t(0.25) * (bisectY0 * bisectZ1 - bisectZ0 * bisectY1);
+  Real_t areaY = cast_Real_t(0.25) * (bisectZ0 * bisectX1 - bisectX0 * bisectZ1);
+  Real_t areaZ = cast_Real_t(0.25) * (bisectX0 * bisectY1 - bisectY0 * bisectX1);
 
   *normalX0 += areaX;
   *normalX1 += areaX;
@@ -358,9 +358,9 @@ occaDeviceFunction void CalcElemNodeNormals(Real_t pfx[8],
 					    const Real_t y[8],
 					    const Real_t z[8]){
   for (Index_t i = 0 ; i < 8 ; ++i) {
-    pfx[i] = Real_t(0.0);
-    pfy[i] = Real_t(0.0);
-    pfz[i] = Real_t(0.0);
+    pfx[i] = cast_Real_t(0.0);
+    pfy[i] = cast_Real_t(0.0);
+    pfz[i] = cast_Real_t(0.0);
   }
   /* evaluate face one: nodes 0, 1, 2, 3 */
   SumElemFaceNormal(&pfx[0], &pfy[0], &pfz[0],
@@ -481,7 +481,7 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 	n[i] = nodelist[elem+i*padded_numElem];
       }
 
-      const Real_t volinv = Real_t(1.0) / det;
+      const Real_t volinv = cast_Real_t(1.0) / det;
 #pragma unroll
       for (int i=0;i<8;i++) {
 	// xn[i] =x[n[i]];
@@ -494,7 +494,7 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
       }
 
       const Real_t volume13 = CBRT(det);
-      coefficient = - hourg * Real_t(0.01) * ss1 * mass1 / volume13;
+      coefficient = - hourg * cast_Real_t(0.01) * ss1 * mass1 / volume13;
 
       /*************************************************/
       /*    compute the volume derivatives             */

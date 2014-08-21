@@ -23,7 +23,7 @@ AddNodeForcesFromElems_kernel(occaKernelInfoArg,
       const Int_t count=nodeElemCount[g_i];
       const Int_t start=nodeElemStart[g_i];
       Real_t fx,fy,fz;
-      fx=fy=fz=Real_t(0.0);
+      fx=fy=fz=cast_Real_t(0.0);
 
       for (int j=0;j<count;j++){
 	const Index_t pos=nodeElemCornerList[start+j]; // Uncoalesced access here

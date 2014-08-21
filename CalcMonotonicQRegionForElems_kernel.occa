@@ -46,119 +46,119 @@ void CalcMonotonicQRegionForElems_kernel(occaKernelInfoArg,
       Real_t delvm, delvp ;
 
       /*  phixi     */
-      Real_t norm = Real_t(1.) / ( delv_xi[i] + ptiny ) ;
+      Real_t norm = cast_Real_t(1.) / ( delv_xi[i] + ptiny ) ;
 
       switch (bcMask & XI_M) {
       case 0:         delvm = delv_xi[lxim[i]] ; break ;
       case XI_M_SYMM: delvm = delv_xi[i] ;       break ;
-      case XI_M_FREE: delvm = Real_t(0.0) ;      break ;
+      case XI_M_FREE: delvm = cast_Real_t(0.0) ;      break ;
       default:        /* ERROR */ ;              break ;
       }
       switch (bcMask & XI_P) {
       case 0:         delvp = delv_xi[lxip[i]] ; break ;
       case XI_P_SYMM: delvp = delv_xi[i] ;       break ;
-      case XI_P_FREE: delvp = Real_t(0.0) ;      break ;
+      case XI_P_FREE: delvp = cast_Real_t(0.0) ;      break ;
       default:        /* ERROR */ ;              break ;
       }
 
       delvm = delvm * norm ;
       delvp = delvp * norm ;
 
-      phixi = Real_t(.5) * ( delvm + delvp ) ;
+      phixi = cast_Real_t(.5) * ( delvm + delvp ) ;
 
       delvm *= monoq_limiter_mult ;
       delvp *= monoq_limiter_mult ;
 
       if ( delvm < phixi ) phixi = delvm ;
       if ( delvp < phixi ) phixi = delvp ;
-      if ( phixi < Real_t(0.)) phixi = Real_t(0.) ;
+      if ( phixi < cast_Real_t(0.)) phixi = cast_Real_t(0.) ;
       if ( phixi > monoq_max_slope) phixi = monoq_max_slope;
 
 
       /*  phieta     */
-      norm = Real_t(1.) / ( delv_eta[i] + ptiny ) ;
+      norm = cast_Real_t(1.) / ( delv_eta[i] + ptiny ) ;
 
       switch (bcMask & ETA_M) {
          case 0:          delvm = delv_eta[letam[i]] ; break ;
          case ETA_M_SYMM: delvm = delv_eta[i] ;        break ;
-         case ETA_M_FREE: delvm = Real_t(0.0) ;        break ;
+         case ETA_M_FREE: delvm = cast_Real_t(0.0) ;        break ;
          default:         /* ERROR */ ;                break ;
       }
       switch (bcMask & ETA_P) {
          case 0:          delvp = delv_eta[letap[i]] ; break ;
          case ETA_P_SYMM: delvp = delv_eta[i] ;        break ;
-         case ETA_P_FREE: delvp = Real_t(0.0) ;        break ;
+         case ETA_P_FREE: delvp = cast_Real_t(0.0) ;        break ;
          default:         /* ERROR */ ;                break ;
       }
 
       delvm = delvm * norm ;
       delvp = delvp * norm ;
 
-      phieta = Real_t(.5) * ( delvm + delvp ) ;
+      phieta = cast_Real_t(.5) * ( delvm + delvp ) ;
 
       delvm *= monoq_limiter_mult ;
       delvp *= monoq_limiter_mult ;
 
       if ( delvm  < phieta ) phieta = delvm ;
       if ( delvp  < phieta ) phieta = delvp ;
-      if ( phieta < Real_t(0.)) phieta = Real_t(0.) ;
+      if ( phieta < cast_Real_t(0.)) phieta = cast_Real_t(0.) ;
       if ( phieta > monoq_max_slope)  phieta = monoq_max_slope;
 
       /*  phizeta     */
-      norm = Real_t(1.) / ( delv_zeta[i] + ptiny ) ;
+      norm = cast_Real_t(1.) / ( delv_zeta[i] + ptiny ) ;
 
       switch (bcMask & ZETA_M) {
          case 0:           delvm = delv_zeta[lzetam[i]] ; break ;
          case ZETA_M_SYMM: delvm = delv_zeta[i] ;         break ;
-         case ZETA_M_FREE: delvm = Real_t(0.0) ;          break ;
+         case ZETA_M_FREE: delvm = cast_Real_t(0.0) ;          break ;
          default:          /* ERROR */ ;                  break ;
       }
       switch (bcMask & ZETA_P) {
          case 0:           delvp = delv_zeta[lzetap[i]] ; break ;
          case ZETA_P_SYMM: delvp = delv_zeta[i] ;         break ;
-         case ZETA_P_FREE: delvp = Real_t(0.0) ;          break ;
+         case ZETA_P_FREE: delvp = cast_Real_t(0.0) ;          break ;
          default:          /* ERROR */ ;                  break ;
       }
 
       delvm = delvm * norm ;
       delvp = delvp * norm ;
 
-      phizeta = Real_t(.5) * ( delvm + delvp ) ;
+      phizeta = cast_Real_t(.5) * ( delvm + delvp ) ;
 
       delvm *= monoq_limiter_mult ;
       delvp *= monoq_limiter_mult ;
 
       if ( delvm   < phizeta ) phizeta = delvm ;
       if ( delvp   < phizeta ) phizeta = delvp ;
-      if ( phizeta < Real_t(0.)) phizeta = Real_t(0.);
+      if ( phizeta < cast_Real_t(0.)) phizeta = cast_Real_t(0.);
       if ( phizeta > monoq_max_slope  ) phizeta = monoq_max_slope;
 
       /* Remove length scale */
 
-      if ( vdov[i] > Real_t(0.) )  {
-         qlin  = Real_t(0.) ;
-         qquad = Real_t(0.) ;
+      if ( vdov[i] > cast_Real_t(0.) )  {
+         qlin  = cast_Real_t(0.) ;
+         qquad = cast_Real_t(0.) ;
       }
       else {
          Real_t delvxxi   = delv_xi[i]   * delx_xi[i]   ;
          Real_t delvxeta  = delv_eta[i]  * delx_eta[i]  ;
          Real_t delvxzeta = delv_zeta[i] * delx_zeta[i] ;
 
-         if ( delvxxi   > Real_t(0.) ) delvxxi   = Real_t(0.) ;
-         if ( delvxeta  > Real_t(0.) ) delvxeta  = Real_t(0.) ;
-         if ( delvxzeta > Real_t(0.) ) delvxzeta = Real_t(0.) ;
+         if ( delvxxi   > cast_Real_t(0.) ) delvxxi   = cast_Real_t(0.) ;
+         if ( delvxeta  > cast_Real_t(0.) ) delvxeta  = cast_Real_t(0.) ;
+         if ( delvxzeta > cast_Real_t(0.) ) delvxzeta = cast_Real_t(0.) ;
 
          Real_t rho = elemMass[i] / (volo[i] * vnew[i]) ;
 
          qlin = -qlc_monoq * rho *
-            (  delvxxi   * (Real_t(1.) - phixi) +
-               delvxeta  * (Real_t(1.) - phieta) +
-               delvxzeta * (Real_t(1.) - phizeta)  ) ;
+            (  delvxxi   * (cast_Real_t(1.) - phixi) +
+               delvxeta  * (cast_Real_t(1.) - phieta) +
+               delvxzeta * (cast_Real_t(1.) - phizeta)  ) ;
 
          qquad = qqc_monoq * rho *
-            (  delvxxi*delvxxi     * (Real_t(1.) - phixi*phixi) +
-               delvxeta*delvxeta   * (Real_t(1.) - phieta*phieta) +
-               delvxzeta*delvxzeta * (Real_t(1.) - phizeta*phizeta)  ) ;
+            (  delvxxi*delvxxi     * (cast_Real_t(1.) - phixi*phixi) +
+               delvxeta*delvxeta   * (cast_Real_t(1.) - phieta*phieta) +
+               delvxzeta*delvxzeta * (cast_Real_t(1.) - phizeta*phizeta)  ) ;
       }
 
       qq[i] = qquad ;

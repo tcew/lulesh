@@ -13,23 +13,23 @@ void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,
                       occaPointer Real_t *delv_eta){
 
 #define SUM4(a,b,c,d) (a + b + c + d)
-  const Real_t ptiny = Real_t(1.e-36) ;
+  const Real_t ptiny = cast_Real_t(1.e-36) ;
   Real_t ax,ay,az ;
   Real_t dxv,dyv,dzv ;
 
-  Real_t norm = Real_t(1.0) / ( vol + ptiny ) ;
+  Real_t norm = cast_Real_t(1.0) / ( vol + ptiny ) ;
 
-  Real_t dxj = Real_t(-0.25)*(SUM4(x[0],x[1],x[5],x[4]) - SUM4(x[3],x[2],x[6],x[7])) ;
-  Real_t dyj = Real_t(-0.25)*(SUM4(y[0],y[1],y[5],y[4]) - SUM4(y[3],y[2],y[6],y[7])) ;
-  Real_t dzj = Real_t(-0.25)*(SUM4(z[0],z[1],z[5],z[4]) - SUM4(z[3],z[2],z[6],z[7])) ;
+  Real_t dxj = cast_Real_t(-0.25)*(SUM4(x[0],x[1],x[5],x[4]) - SUM4(x[3],x[2],x[6],x[7])) ;
+  Real_t dyj = cast_Real_t(-0.25)*(SUM4(y[0],y[1],y[5],y[4]) - SUM4(y[3],y[2],y[6],y[7])) ;
+  Real_t dzj = cast_Real_t(-0.25)*(SUM4(z[0],z[1],z[5],z[4]) - SUM4(z[3],z[2],z[6],z[7])) ;
 
-  Real_t dxi = Real_t( 0.25)*(SUM4(x[1],x[2],x[6],x[5]) - SUM4(x[0],x[3],x[7],x[4])) ;
-  Real_t dyi = Real_t( 0.25)*(SUM4(y[1],y[2],y[6],y[5]) - SUM4(y[0],y[3],y[7],y[4])) ;
-  Real_t dzi = Real_t( 0.25)*(SUM4(z[1],z[2],z[6],z[5]) - SUM4(z[0],z[3],z[7],z[4])) ;
+  Real_t dxi = cast_Real_t( 0.25)*(SUM4(x[1],x[2],x[6],x[5]) - SUM4(x[0],x[3],x[7],x[4])) ;
+  Real_t dyi = cast_Real_t( 0.25)*(SUM4(y[1],y[2],y[6],y[5]) - SUM4(y[0],y[3],y[7],y[4])) ;
+  Real_t dzi = cast_Real_t( 0.25)*(SUM4(z[1],z[2],z[6],z[5]) - SUM4(z[0],z[3],z[7],z[4])) ;
 
-  Real_t dxk = Real_t( 0.25)*(SUM4(x[4],x[5],x[6],x[7]) - SUM4(x[0],x[1],x[2],x[3])) ;
-  Real_t dyk = Real_t( 0.25)*(SUM4(y[4],y[5],y[6],y[7]) - SUM4(y[0],y[1],y[2],y[3])) ;
-  Real_t dzk = Real_t( 0.25)*(SUM4(z[4],z[5],z[6],z[7]) - SUM4(z[0],z[1],z[2],z[3])) ;
+  Real_t dxk = cast_Real_t( 0.25)*(SUM4(x[4],x[5],x[6],x[7]) - SUM4(x[0],x[1],x[2],x[3])) ;
+  Real_t dyk = cast_Real_t( 0.25)*(SUM4(y[4],y[5],y[6],y[7]) - SUM4(y[0],y[1],y[2],y[3])) ;
+  Real_t dzk = cast_Real_t( 0.25)*(SUM4(z[4],z[5],z[6],z[7]) - SUM4(z[0],z[1],z[2],z[3])) ;
 
   /* find delvk and delxk ( i cross j ) */
   ax = dyi*dzj - dzi*dyj ;
@@ -42,9 +42,9 @@ void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,
   ay *= norm ;
   az *= norm ;
 
-  dxv = Real_t(0.25)*(SUM4(xv[4],xv[5],xv[6],xv[7]) - SUM4(xv[0],xv[1],xv[2],xv[3])) ;
-  dyv = Real_t(0.25)*(SUM4(yv[4],yv[5],yv[6],yv[7]) - SUM4(yv[0],yv[1],yv[2],yv[3])) ;
-  dzv = Real_t(0.25)*(SUM4(zv[4],zv[5],zv[6],zv[7]) - SUM4(zv[0],zv[1],zv[2],zv[3])) ;
+  dxv = cast_Real_t(0.25)*(SUM4(xv[4],xv[5],xv[6],xv[7]) - SUM4(xv[0],xv[1],xv[2],xv[3])) ;
+  dyv = cast_Real_t(0.25)*(SUM4(yv[4],yv[5],yv[6],yv[7]) - SUM4(yv[0],yv[1],yv[2],yv[3])) ;
+  dzv = cast_Real_t(0.25)*(SUM4(zv[4],zv[5],zv[6],zv[7]) - SUM4(zv[0],zv[1],zv[2],zv[3])) ;
 
   *delv_zeta = ax*dxv + ay*dyv + az*dzv ;
 
@@ -60,9 +60,9 @@ void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,
   ay *= norm ;
   az *= norm ;
 
-  dxv = Real_t(0.25)*(SUM4(xv[1],xv[2],xv[6],xv[5]) - SUM4(xv[0],xv[3],xv[7],xv[4])) ;
-  dyv = Real_t(0.25)*(SUM4(yv[1],yv[2],yv[6],yv[5]) - SUM4(yv[0],yv[3],yv[7],yv[4])) ;
-  dzv = Real_t(0.25)*(SUM4(zv[1],zv[2],zv[6],zv[5]) - SUM4(zv[0],zv[3],zv[7],zv[4])) ;
+  dxv = cast_Real_t(0.25)*(SUM4(xv[1],xv[2],xv[6],xv[5]) - SUM4(xv[0],xv[3],xv[7],xv[4])) ;
+  dyv = cast_Real_t(0.25)*(SUM4(yv[1],yv[2],yv[6],yv[5]) - SUM4(yv[0],yv[3],yv[7],yv[4])) ;
+  dzv = cast_Real_t(0.25)*(SUM4(zv[1],zv[2],zv[6],zv[5]) - SUM4(zv[0],zv[3],zv[7],zv[4])) ;
 
   *delv_xi = ax*dxv + ay*dyv + az*dzv ;
 
@@ -78,9 +78,9 @@ void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,
   ay *= norm ;
   az *= norm ;
 
-  dxv = Real_t(-0.25)*(SUM4(xv[0],xv[1],xv[5],xv[4]) - SUM4(xv[3],xv[2],xv[6],xv[7])) ;
-  dyv = Real_t(-0.25)*(SUM4(yv[0],yv[1],yv[5],yv[4]) - SUM4(yv[3],yv[2],yv[6],yv[7])) ;
-  dzv = Real_t(-0.25)*(SUM4(zv[0],zv[1],zv[5],zv[4]) - SUM4(zv[3],zv[2],zv[6],zv[7])) ;
+  dxv = cast_Real_t(-0.25)*(SUM4(xv[0],xv[1],xv[5],xv[4]) - SUM4(xv[3],xv[2],xv[6],xv[7])) ;
+  dyv = cast_Real_t(-0.25)*(SUM4(yv[0],yv[1],yv[5],yv[4]) - SUM4(yv[3],yv[2],yv[6],yv[7])) ;
+  dzv = cast_Real_t(-0.25)*(SUM4(zv[0],zv[1],zv[5],zv[4]) - SUM4(zv[3],zv[2],zv[6],zv[7])) ;
 
   *delv_eta = ax*dxv + ay*dyv + az*dzv ;
 #undef SUM4
@@ -94,7 +94,7 @@ void CalcElemVelocityGradient( const Real_t* const xvel,
 			       const Real_t detJ,
 			       Real_t* const d ){
 
-  const Real_t inv_detJ = Real_t(1.0) / detJ ;
+  const Real_t inv_detJ = cast_Real_t(1.0) / detJ ;
   Real_t dyddx, dxddy, dzddx, dxddz, dzddy, dyddz;
 
   // not sure if this will work in opencl
@@ -146,9 +146,9 @@ void CalcElemVelocityGradient( const Real_t* const xvel,
 			+ pfz[1] * (yvel[1]-yvel[7])
 			+ pfz[2] * (yvel[2]-yvel[4])
 			+ pfz[3] * (yvel[3]-yvel[5]) );
-  d[5]  = Real_t( .5) * ( dxddy + dyddx );
-  d[4]  = Real_t( .5) * ( dxddz + dzddx );
-  d[3]  = Real_t( .5) * ( dzddy + dyddz );
+  d[5]  = cast_Real_t( .5) * ( dxddy + dyddx );
+  d[4]  = cast_Real_t( .5) * ( dxddz + dzddx );
+  d[3]  = cast_Real_t( .5) * ( dzddy + dyddz );
 }
 
 
@@ -181,7 +181,7 @@ Real_t CalcElemCharacteristicLength( const Real_t x[8],
 				     const Real_t volume){
 
   Real_t a;
-  Real_t cL = Real_t(0.0);
+  Real_t cL = cast_Real_t(0.0);
 
   AreaFace(x[0],x[1],x[2],x[3],
 	   y[0],y[1],y[2],y[3],
@@ -213,7 +213,7 @@ Real_t CalcElemCharacteristicLength( const Real_t x[8],
 	   z[3],z[0],z[4],z[7], &a) ;
   cL = FMAX(a,cL) ;
 
-  cL = Real_t(4.0) * volume / SQRT(cL);
+  cL = cast_Real_t(4.0) * volume / SQRT(cL);
 
   return cL;
 }
@@ -317,7 +317,7 @@ void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg,
 	  zd_local[lnode] = occaTextFetch1D(zd, gnode);
 	}
 
-	Real_t dt2 = Real_t(0.5) * dt;
+	Real_t dt2 = cast_Real_t(0.5) * dt;
 
 #pragma unroll
 	for ( Index_t j=0 ; j<8 ; ++j ){
@@ -338,7 +338,7 @@ void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg,
 
 	// calc strain rate and apply as constraint (only done in FB element)
 	Real_t vdovNew = D[0] + D[1] + D[2];
-	Real_t vdovthird = vdovNew/Real_t(3.0) ;
+	Real_t vdovthird = vdovNew/cast_Real_t(3.0) ;
 
 	// make the rate of deformation tensor deviatoric
 	vdov[k] = vdovNew ;

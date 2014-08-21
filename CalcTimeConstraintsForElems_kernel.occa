@@ -21,8 +21,8 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
     occaVolatile occaShared Real_t s_mindthydro[block_size] occaAligned;
     occaVolatile occaShared Real_t s_mindtcourant[block_size] occaAligned;
 
-    Real_t mindthydro = Real_t(1.0e+20) ;
-    Real_t mindtcourant = Real_t(1.0e+20) ;
+    Real_t mindthydro = cast_Real_t(1.0e+20) ;
+    Real_t mindtcourant = cast_Real_t(1.0e+20) ;
 
     occaInnerFor0{
       Real_t dthydro = mindthydro;
@@ -36,8 +36,8 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 	Real_t vdov_tmp = vdov[indx];
 
 	// Computing dt_hydro
-	if (vdov_tmp != Real_t(0.)) {
-	  Real_t dtdvov = dvovmax / (FABS(vdov_tmp)+Real_t(1.e-20)) ;
+	if (vdov_tmp != cast_Real_t(0.)) {
+	  Real_t dtdvov = dvovmax / (FABS(vdov_tmp)+cast_Real_t(1.e-20)) ;
 	  if ( dthydro > dtdvov ) {
             dthydro = dtdvov ;
 	  }
@@ -55,7 +55,7 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 	dtf = area_tmp / SQRT(dtf) ;
 
 	/* determine minimum timestep with its corresponding elem */
-	if (vdov_tmp != Real_t(0.) && dtf < dtcourant) {
+	if (vdov_tmp != cast_Real_t(0.) && dtf < dtcourant) {
 	  dtcourant = dtf ;
 	}
 
@@ -152,8 +152,8 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 
     // Store in global memory
     if (tid==0) {
-      dev_mindtcourant[blockIdx.x] = s_mindtcourant[0];
-      dev_mindthydro[blockIdx.x] = s_mindthydro[0];
+      dev_mindtcourant[occaOuterId0] = s_mindtcourant[0];
+      dev_mindthydro[occaOuterId0] = s_mindthydro[0];
     }
 #endif
 
