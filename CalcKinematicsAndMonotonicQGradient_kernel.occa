@@ -175,11 +175,10 @@ occaDeviceFunction void AreaFace( const Real_t x0, const Real_t x1,
 
 
 occaDeviceFunction
-void CalcElemCharacteristicLength( const Real_t x[8],
+Real_t CalcElemCharacteristicLength( const Real_t x[8],
 				   const Real_t y[8],
 				   const Real_t z[8],
-				   const Real_t volume,
-				   Real_t *charLength){
+				     const Real_t volume){
 
   Real_t a;
   Real_t cL = Real_t(0.0);
@@ -216,7 +215,7 @@ void CalcElemCharacteristicLength( const Real_t x[8],
 
   cL = Real_t(4.0) * volume / SQRT(cL);
 
-  *charLength = cL;
+  return cL;
 }
 
 // TODO: use texture memory instead of global
@@ -229,29 +228,29 @@ void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg,
 						const Index_t occaVariable numElem,
 						const Index_t occaVariable padded_numElem,
 						const Real_t occaVariable dt,
-						const Index_t* occaRestrict nodelist,
-						const Real_t* occaRestrict volo,
-						const Real_t* occaRestrict v,
-						occaReadOnly occaTexture1D x,
-						occaReadOnly occaTexture1D y,
-						occaReadOnly occaTexture1D z,
-						occaReadOnly occaTexture1D xd,
-						occaReadOnly occaTexture1D yd,
-						occaReadOnly occaTexture1D zd,
-						Real_t* occaRestrict vnew,
-						Real_t* occaRestrict delv,
-						Real_t* occaRestrict arealg,
-						Real_t* occaRestrict dxx,
-						Real_t* occaRestrict dyy,
-						Real_t* occaRestrict dzz,
-						Real_t* occaRestrict vdov,
-						Real_t* occaRestrict delx_zeta,
-						Real_t* occaRestrict delv_zeta,
-						Real_t* occaRestrict delx_xi,
-						Real_t* occaRestrict delv_xi,
-						Real_t* occaRestrict delx_eta,
-						Real_t* occaRestrict delv_eta,
-						Index_t* occaRestrict bad_vol,
+						const occaPointer Index_t* occaRestrict nodelist,
+						const occaPointer Real_t* occaRestrict volo,
+						const occaPointer Real_t* occaRestrict v,
+						occaPointer occaReadOnly occaTexture1D x,
+						occaPointer occaReadOnly occaTexture1D y,
+						occaPointer occaReadOnly occaTexture1D z,
+						occaPointer occaReadOnly occaTexture1D xd,
+						occaPointer occaReadOnly occaTexture1D yd,
+						occaPointer occaReadOnly occaTexture1D zd,
+						occaPointer Real_t* occaRestrict vnew,
+						occaPointer Real_t* occaRestrict delv,
+						occaPointer Real_t* occaRestrict arealg,
+						occaPointer Real_t* occaRestrict dxx,
+						occaPointer Real_t* occaRestrict dyy,
+						occaPointer Real_t* occaRestrict dzz,
+						occaPointer Real_t* occaRestrict vdov,
+						occaPointer Real_t* occaRestrict delx_zeta,
+						occaPointer Real_t* occaRestrict delv_zeta,
+						occaPointer Real_t* occaRestrict delx_xi,
+						occaPointer Real_t* occaRestrict delv_xi,
+						occaPointer Real_t* occaRestrict delx_eta,
+						occaPointer Real_t* occaRestrict delv_eta,
+						occaPointer Index_t* occaRestrict bad_vol,
 						const Index_t occaVariable num_threads){
 
   occaOuterFor0{
@@ -302,7 +301,7 @@ void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg,
 	delv[k] = relativeVolume - v[k] ;
 	// set characteristic length
 	// arealg[k] = CalcElemCharacteristicLength(x_local,y_local,z_local,volume);
-	CalcElemCharacteristicLength(x_local,y_local,z_local,volume, &(arealg[k]));
+	arealg[k] = CalcElemCharacteristicLength(x_local,y_local,z_local,volume);
 
 	// get nodal velocities from global array and copy into local arrays.
 #pragma unroll
