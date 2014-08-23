@@ -3520,7 +3520,6 @@ int main(int argc, char *argv[])
     printf("time = %e, dt=%e\n", double(locDom->time_h), double(locDom->deltatime_h) ) ;
     #endif
     its++;
-    break;
   }
 
   float elapsed_time;
