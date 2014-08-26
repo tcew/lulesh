@@ -91,6 +91,27 @@ void occaCheck(occa::memory &a){
 }
 
 
+template <typename T>
+void occaCompare(occa::memory &o_a, occa::memory &o_b){
+
+#ifndef NDEBUG
+  int len = o_a.bytes()/sizeof(T);
+
+  assert(len == o_b.bytes()/sizeof(T));
+
+  std::vector<T> a(len);
+  std::vector<T> b(len);
+
+  o_a.copyTo(&(a[0]));
+  o_b.copyTo(&(b[0]));
+
+
+  for(int i=0; i<len; i++)
+    assert(a[i] == b[i]);
+#endif
+
+}
+
 Real_t CalcElemVolumeTemp( const Real_t x0, const Real_t x1,
 			   const Real_t x2, const Real_t x3,
 			   const Real_t x4, const Real_t x5,
@@ -740,9 +761,8 @@ static void occa_init(){
   int plat = 0;
   int dev = 0;
 
-  occaHandle.setup("CUDA", plat, dev);
-  // occaHandle.setup("OpenMP", plat, dev);
-
+  // occaHandle.setup("CUDA", plat, dev);
+  occaHandle.setup("OpenCL", plat, dev);
 
   buildLuleshKernels();
 
@@ -833,28 +853,18 @@ void AllocateNodalPersistent(Domain* domain,
   std::vector<float> testY(domNodes);
   std::vector<float> testZ(domNodes);
 
-
   domain->x.copyTo(&(tempX[0]));
   domain->y.copyTo(&(tempY[0]));
   domain->z.copyTo(&(tempZ[0]));
 
-  domain->tex_x = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readOnly);
-  domain->tex_y = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readOnly);
-  domain->tex_z = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readOnly);
+  domain->tex_x = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readWrite);
+  domain->tex_y = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readWrite);
+  domain->tex_z = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readWrite);
 
-  occaCheck<Real_t>(domain->tex_x);
-  occaCheck<Real_t>(domain->tex_y);
-  occaCheck<Real_t>(domain->tex_z);
 
-  domain->tex_x.copyTo(&(testX[0]));
-  domain->tex_y.copyTo(&(testY[0]));
-  domain->tex_z.copyTo(&(testZ[0]));
-
-  for(int i=0; i<domNodes; i++){
-    assert(tempX[i] == testX[i]);
-    assert(tempY[i] == testY[i]);
-    assert(tempZ[i] == testZ[i]);
-  }
+  occaCompare<Real_t>(domain->x, domain->tex_x);
+  occaCompare<Real_t>(domain->y, domain->tex_y);
+  occaCompare<Real_t>(domain->z, domain->tex_z);
 
 #endif
 
@@ -879,24 +889,14 @@ void AllocateNodalPersistent(Domain* domain,
   domain->yd.copyTo(&(tempY[0]));
   domain->zd.copyTo(&(tempZ[0]));
 
-  domain->tex_xd = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readOnly);
-  domain->tex_yd = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readOnly);
-  domain->tex_zd = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readOnly);
+  domain->tex_xd = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readWrite);
+  domain->tex_yd = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readWrite);
+  domain->tex_zd = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readWrite);
 
-  occaCheck<Real_t>(domain->tex_xd);
-  occaCheck<Real_t>(domain->tex_yd);
-  occaCheck<Real_t>(domain->tex_zd);
 
-  domain->tex_xd.copyTo(&(testX[0]));
-  domain->tex_yd.copyTo(&(testY[0]));
-  domain->tex_zd.copyTo(&(testZ[0]));
-
-  for(int i=0; i<domNodes; i++){
-    assert(tempX[i] == testX[i]);
-    assert(tempY[i] == testY[i]);
-    assert(tempZ[i] == testZ[i]);
-  }
-
+  occaCompare<Real_t>(domain->xd, domain->tex_xd);
+  occaCompare<Real_t>(domain->yd, domain->tex_yd);
+  occaCompare<Real_t>(domain->zd, domain->tex_zd);
 #endif
   // domain->xdd.resize(domNodes) ; /* accelerations */
   // domain->ydd.resize(domNodes) ;
@@ -1139,6 +1139,10 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
       domain->y.copyFrom(&(y_h[0]));
       domain->z.copyFrom(&(z_h[0]));
 
+      domain->tex_x.copyFrom(&(x_h[0]));
+      domain->tex_y.copyFrom(&(y_h[0]));
+      domain->tex_z.copyFrom(&(z_h[0]));
+
       /* embed hexehedral elements in nodal point lattice */
 
       nodelist_h.resize(padded_domElems*8);
@@ -1333,6 +1337,10 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
       domain->x.copyFrom(&(x_h[0]));
       domain->y.copyFrom(&(y_h[0]));
       domain->z.copyFrom(&(z_h[0]));
+
+      domain->tex_x.copyFrom(&(x_h[0]));
+      domain->tex_y.copyFrom(&(y_h[0]));
+      domain->tex_z.copyFrom(&(z_h[0]));
 
       /* embed hexehedral elements in nodal point lattice */
       nodelist_h.resize(padded_domElems*8);
@@ -1797,6 +1805,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   occa::dim outer(dimGrid);
 
   bool hourg_gt_zero = hgcoef > Real_t(0.0);
+
   if (hourg_gt_zero)
     {
       //       CalcVolumeForceForElems_kernel<true> <<<dimGrid,block_size>>>
@@ -1838,7 +1847,6 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 	  domain->nodelist,
 	  domain->ss,
 	  domain->elemMass,
-	  domain->x, domain->y, domain->z, domain->xd, domain->yd, domain->zd,
 	  domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
 #ifdef DOUBLE_PRECISION
 	  domain->fx_elem,
@@ -1903,7 +1911,6 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 	  domain->nodelist,
 	  domain->ss,
 	  domain->elemMass,
-	  domain->x, domain->y, domain->z, domain->xd, domain->yd, domain->zd,
 	  domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
 #ifdef DOUBLE_PRECISION
 	  domain->fx_elem,
@@ -2130,17 +2137,25 @@ void CalcPositionAndVelocityForNodes(const Real_t u_cut, Domain* domain)
   //      domain->xd.raw(),domain->yd.raw(),domain->zd.raw(),
   //      domain->xdd.raw(),domain->ydd.raw(),domain->zdd.raw());
 
+  // occaCompare<Real_t>(domain->x, domain->tex_x);
+  // occaCompare<Real_t>(domain->y, domain->tex_y);
+  // occaCompare<Real_t>(domain->z, domain->tex_z);
+
+  // occaCompare<Real_t>(domain->xd, domain->tex_xd);
+  // occaCompare<Real_t>(domain->yd, domain->tex_yd);
+  // occaCompare<Real_t>(domain->zd, domain->tex_zd);
+
   CalcPositionAndVelocityForNodes_kernel.setWorkingDims(dims, inner, outer);
   CalcPositionAndVelocityForNodes_kernel
     (domain->numNode,
      domain->deltatime_h,
      u_cut,
-     domain->x,
-     domain->y,
-     domain->z,
-     domain->xd,
-     domain->yd,
-     domain->zd,
+     domain->tex_x,
+     domain->tex_y,
+     domain->tex_z,
+     domain->tex_xd,
+     domain->tex_yd,
+     domain->tex_zd,
      domain->xdd,
      domain->ydd,
      domain->zdd);
@@ -2231,7 +2246,6 @@ void CalcKinematicsAndMonotonicQGradient(Domain *domain)
        domain->nodelist,
        domain->volo,
        domain->v,
-       domain->x, domain->y, domain->z, domain->xd, domain->yd, domain->zd,
        domain->tex_x,domain->tex_y,domain->tex_z,domain->tex_xd,domain->tex_yd,domain->tex_zd,
        domain->vnew,
        domain->delv,
@@ -2616,6 +2630,7 @@ void LagrangeLeapFrog(Domain* domain)
    * applied boundary conditions and slide surface considerations */
   LagrangeNodal(domain);
 
+
   /* calculate element quantities (i.e. velocity gradient & q), and update
    * material states */
   LagrangeElements(domain);
@@ -2832,7 +2847,6 @@ int main(int argc, char *argv[])
   // cudaEventCreate(&timer_start);
   // cudaEventCreate(&timer_stop);
   // cudaEventRecord( timer_start );
-
   double timer_start = occa::currentTime();
 
   while(locDom->time_h < locDom->stoptime)

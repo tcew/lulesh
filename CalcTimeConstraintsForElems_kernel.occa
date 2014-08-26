@@ -21,8 +21,8 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
     occaVolatile occaShared Real_t s_mindthydro[block_size] occaAligned;
     occaVolatile occaShared Real_t s_mindtcourant[block_size] occaAligned;
 
-    Real_t mindthydro = Real_t(1.0e+20) ;
-    Real_t mindtcourant = Real_t(1.0e+20) ;
+    Real_t mindthydro = ((Real_t) 1.0e+20) ;
+    Real_t mindtcourant = ((Real_t) 1.0e+20) ;
 
     occaInnerFor0{
       Real_t dthydro = mindthydro;
@@ -32,38 +32,38 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 
       while (i<length) {
 
-	Index_t indx = matElemlist[i] ;
-	Real_t vdov_tmp = vdov[indx];
+      	Index_t indx = matElemlist[i] ;
+      	Real_t vdov_tmp = vdov[indx];
 
-	// Computing dt_hydro
-	if (vdov_tmp != Real_t(0.)) {
-	  Real_t dtdvov = dvovmax / (FABS(vdov_tmp)+Real_t(1.e-20)) ;
-	  if ( dthydro > dtdvov ) {
+      	// Computing dt_hydro
+      	if (vdov_tmp != ((Real_t)0.)) {
+      	  Real_t dtdvov = dvovmax / (FABS(vdov_tmp)+((Real_t)1.e-20)) ;
+      	  if ( dthydro > dtdvov ) {
             dthydro = dtdvov ;
-	  }
-	}
-	if (dthydro < mindthydro)
-	  mindthydro = dthydro;
+      	  }
+      	}
+      	if (dthydro < mindthydro)
+      	  mindthydro = dthydro;
 
-	// Computing dt_courant
-	Real_t ss_tmp = ss[indx];
-	Real_t area_tmp = arealg[indx];
-	Real_t dtf = ss_tmp * ss_tmp ;
+      	// Computing dt_courant
+      	Real_t ss_tmp = ss[indx];
+      	Real_t area_tmp = arealg[indx];
+      	Real_t dtf = ss_tmp * ss_tmp ;
 
-	dtf += ((vdov_tmp < 0.) ? qqc2*area_tmp*area_tmp*vdov_tmp*vdov_tmp : 0.);
+      	dtf += ((vdov_tmp < 0.) ? qqc2*area_tmp*area_tmp*vdov_tmp*vdov_tmp : 0.);
 
-	dtf = area_tmp / SQRT(dtf) ;
+      	dtf = area_tmp / SQRT(dtf) ;
 
-	/* determine minimum timestep with its corresponding elem */
-	if (vdov_tmp != Real_t(0.) && dtf < dtcourant) {
-	  dtcourant = dtf ;
-	}
+      	// /* determine minimum timestep with its corresponding elem */
+      	if ( vdov_tmp != ((Real_t)0.) && dtf < dtcourant) {
+      	  dtcourant = dtf ;
+      	}
 
-	if (dtcourant< mindtcourant)
-	  mindtcourant= dtcourant;
+      	if (dtcourant< mindtcourant)
+      	  mindtcourant= dtcourant;
 
-	// i += gridDim.x*blockDim.x;
-	i += occaGlobalDim0;
+      	// i += gridDim.x*blockDim.x;
+      	i += occaGlobalDim0;
       }
 
       const int tid = occaInnerId0;

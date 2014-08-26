@@ -27,7 +27,7 @@ else
 endif
 
 luleshOCCA: lulesh.cpp
-	$(CC) $(flags) lulesh.cpp -o luleshOCCA $(libs)
+	$(CXX) $(flags) lulesh.cpp -o luleshOCCA $(libs)
 
 clean:
 	rm -rf allocator.o  lulesh

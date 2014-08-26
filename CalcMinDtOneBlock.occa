@@ -28,9 +28,9 @@ occaKernel void CalcMinDtOneBlock(occaKernelInfoArg,
       occaBarrier(occaLocalMemFence);
 
 #if occaCPU==1
-      (*dtcourant) = s_data[0];
+      dtcourant[0] = s_data[0];
       for(int tid=1; tid<block_size; tid++)
-	(*dtcourant) = MIN((*dtcourant), s_data[tid]);
+	dtcourant[0] = MIN(dtcourant[0], s_data[tid]);
 #else
       const int tid = occaInnerId0;
 
@@ -85,7 +85,7 @@ occaKernel void CalcMinDtOneBlock(occaKernelInfoArg,
       }
 
       if (tid<1){
-	*(dtcourant)= s_data[0];
+	dtcourant[0]= s_data[0];
       }
 #endif
     }
@@ -159,7 +159,7 @@ occaKernel void CalcMinDtOneBlock(occaKernelInfoArg,
       }
 
       if (tid<1){
-	*(dthydro) = s_data[0];
+	dthydro[0] = s_data[0];
       }
 
 #endif
