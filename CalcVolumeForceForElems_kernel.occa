@@ -1,4 +1,5 @@
 #include<kernelDefines.occa>
+#include<assert.h>
 
 occaDeviceFunction void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8], const Real_t zn[8],
 					   const Real_t dvdxn[8], const Real_t dvdyn[8], const Real_t dvdzn[8],
@@ -244,7 +245,7 @@ occaDeviceFunction void VoluDer(const Real_t x0, const Real_t x1, const Real_t x
 				const Real_t z3, const Real_t z4, const Real_t z5,
 				Real_t* dvdx, Real_t* dvdy, Real_t* dvdz){
 
-  const Real_t twelfth = cast_Real_t(1.0) / cast_Real_t(12.0) ;
+  const Real_t twelfth = Real_t(1.0) / Real_t(12.0) ;
 
   *dvdx =
     (y1 + y2) * (z0 + z1) - (y0 + y1) * (z1 + z2) +
@@ -325,15 +326,15 @@ SumElemFaceNormal(Real_t *normalX0, Real_t *normalY0, Real_t *normalZ0,
 		  const Real_t x3, const Real_t y3, const Real_t z3){
 
 
-  Real_t bisectX0 = cast_Real_t(0.5) * (x3 + x2 - x1 - x0);
-  Real_t bisectY0 = cast_Real_t(0.5) * (y3 + y2 - y1 - y0);
-  Real_t bisectZ0 = cast_Real_t(0.5) * (z3 + z2 - z1 - z0);
-  Real_t bisectX1 = cast_Real_t(0.5) * (x2 + x1 - x3 - x0);
-  Real_t bisectY1 = cast_Real_t(0.5) * (y2 + y1 - y3 - y0);
-  Real_t bisectZ1 = cast_Real_t(0.5) * (z2 + z1 - z3 - z0);
-  Real_t areaX = cast_Real_t(0.25) * (bisectY0 * bisectZ1 - bisectZ0 * bisectY1);
-  Real_t areaY = cast_Real_t(0.25) * (bisectZ0 * bisectX1 - bisectX0 * bisectZ1);
-  Real_t areaZ = cast_Real_t(0.25) * (bisectX0 * bisectY1 - bisectY0 * bisectX1);
+  Real_t bisectX0 = Real_t(0.5) * (x3 + x2 - x1 - x0);
+  Real_t bisectY0 = Real_t(0.5) * (y3 + y2 - y1 - y0);
+  Real_t bisectZ0 = Real_t(0.5) * (z3 + z2 - z1 - z0);
+  Real_t bisectX1 = Real_t(0.5) * (x2 + x1 - x3 - x0);
+  Real_t bisectY1 = Real_t(0.5) * (y2 + y1 - y3 - y0);
+  Real_t bisectZ1 = Real_t(0.5) * (z2 + z1 - z3 - z0);
+  Real_t areaX = Real_t(0.25) * (bisectY0 * bisectZ1 - bisectZ0 * bisectY1);
+  Real_t areaY = Real_t(0.25) * (bisectZ0 * bisectX1 - bisectX0 * bisectZ1);
+  Real_t areaZ = Real_t(0.25) * (bisectX0 * bisectY1 - bisectY0 * bisectX1);
 
   *normalX0 += areaX;
   *normalX1 += areaX;
@@ -358,9 +359,9 @@ occaDeviceFunction void CalcElemNodeNormals(Real_t pfx[8],
 					    const Real_t y[8],
 					    const Real_t z[8]){
   for (Index_t i = 0 ; i < 8 ; ++i) {
-    pfx[i] = cast_Real_t(0.0);
-    pfy[i] = cast_Real_t(0.0);
-    pfz[i] = cast_Real_t(0.0);
+    pfx[i] = Real_t(0.0);
+    pfy[i] = Real_t(0.0);
+    pfz[i] = Real_t(0.0);
   }
   /* evaluate face one: nodes 0, 1, 2, 3 */
   SumElemFaceNormal(&pfx[0], &pfy[0], &pfz[0],
@@ -411,10 +412,6 @@ occaDeviceFunction void CalcElemNodeNormals(Real_t pfx[8],
 #define hourg_gt_zero true
 #endif
 
-#define occaReadOnly const
-#define occaTexture Real_t *occaRestrict
-#define occaTextFetch1D(a, id) a[id]
-
 //template< bool hourg_gt_zero >
 occaKernel
 void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
@@ -428,12 +425,18 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 				    const occaPointer Index_t* occaRestrict nodelist,
 				    const occaPointer Real_t* occaRestrict ss,
 				    const occaPointer Real_t* occaRestrict elemMass,
-				    occaPointer occaReadOnly occaTexture x,
-				    occaPointer occaReadOnly occaTexture y,
-				    occaPointer occaReadOnly occaTexture z,
-				    occaPointer occaReadOnly occaTexture xd,
-				    occaPointer occaReadOnly occaTexture yd,
-				    occaPointer occaReadOnly occaTexture zd,
+				    const occaPointer Real_t *occaRestrict x,
+				    const occaPointer Real_t *occaRestrict y,
+				    const occaPointer Real_t *occaRestrict z,
+				    const occaPointer Real_t *occaRestrict xd,
+				    const occaPointer Real_t *occaRestrict yd,
+				    const occaPointer Real_t *occaRestrict zd,
+				    occaReadOnly occaTexture1D(tex_x),
+				    occaReadOnly occaTexture1D(tex_y),
+				    occaReadOnly occaTexture1D(tex_z),
+				    occaReadOnly occaTexture1D(tex_xd),
+				    occaReadOnly occaTexture1D(tex_yd),
+				    occaReadOnly occaTexture1D(tex_zd),
 #if DOUBLE_PRECISION // For floats, use atomicAdd
 				    occaPointer Real_t* occaRestrict fx_elem,
 				    occaPointer Real_t* occaRestrict fy_elem,
@@ -449,7 +452,6 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
   /*************************************************
   *     FUNCTION: Calculates the volume forces
   *************************************************/
-
   occaGlobalFor0{
     Real_t xn[8],yn[8],zn[8];;
     Real_t xdn[8],ydn[8],zdn[8];;
@@ -481,20 +483,31 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 	n[i] = nodelist[elem+i*padded_numElem];
       }
 
-      const Real_t volinv = cast_Real_t(1.0) / det;
+      const Real_t volinv = Real_t(1.0) / det;
 #pragma unroll
       for (int i=0;i<8;i++) {
 	// xn[i] =x[n[i]];
 	// yn[i] =y[n[i]];
 	// zn[i] =z[n[i]];
+#if DOUBLE_PRECISION
+	occaTexGet1D(tex_x, double, xn[i], n[i]);
+	occaTexGet1D(tex_y, double, yn[i], n[i]);
+	occaTexGet1D(tex_z, double, zn[i], n[i]);
+#else
+	occaTexGet1D(tex_x, float, xn[i], n[i]);
+	occaTexGet1D(tex_y, float, yn[i], n[i]);
+	occaTexGet1D(tex_z, float, zn[i], n[i]);
 
-	xn[i] = occaTextFetch1D(x, n[i]);
-	yn[i] = occaTextFetch1D(y, n[i]);
-	zn[i] = occaTextFetch1D(z, n[i]);
+	//	assert(xn[i] == n[i]);
+
+	xn[i] =x[n[i]];
+	yn[i] =y[n[i]];
+	zn[i] =z[n[i]];
+#endif
       }
 
       const Real_t volume13 = CBRT(det);
-      coefficient = - hourg * cast_Real_t(0.01) * ss1 * mass1 / volume13;
+      coefficient = - hourg * Real_t(0.01) * ss1 * mass1 / volume13;
 
       /*************************************************/
       /*    compute the volume derivatives             */
@@ -536,10 +549,24 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 	  // xdn[i] =xd[n[i]];
 	  // ydn[i] =yd[n[i]];
 	  // zdn[i] =zd[n[i]];
+#if DOUBLE_PRECISION
+	  occaTexGet1D(tex_xd, double, xdn[i], n[i]);
+	  occaTexGet1D(tex_yd, double, ydn[i], n[i]);
+	  occaTexGet1D(tex_zd, double, zdn[i], n[i]);
+#else
+	  // occaTexGet1D(tex_xd, float, xdn[i], n[i]);
+	  // occaTexGet1D(tex_yd, float, ydn[i], n[i]);
+	  // occaTexGet1D(tex_zd, float, zdn[i], n[i]);
 
-	  xdn[i] = occaTextFetch1D(xd, n[i]);
-	  ydn[i] = occaTextFetch1D(yd, n[i]);
-	  zdn[i] = occaTextFetch1D(zd, n[i]);
+	  // xdn[i] =xd[n[i]];
+	  // ydn[i] =yd[n[i]];
+	  // zdn[i] =zd[n[i]];
+
+	  assert(0);
+	  surf1Dread(&(xdn[i]), tex_xd, n[i]*sizeof(float));
+	  surf1Dread(&(ydn[i]), tex_yd, n[i]*sizeof(float));
+	  surf1Dread(&(zdn[i]), tex_zd, n[i]*sizeof(float));
+#endif
 	}
 
 	CalcElemFBHourglassForce
@@ -565,6 +592,10 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 	atomicAdd(&fx_node[ni],hgfx[i]);
 	atomicAdd(&fy_node[ni],hgfy[i]);
 	atomicAdd(&fz_node[ni],hgfz[i]);
+
+	// occaAtomicAdd(fx_node[ni], hgfx[i]);
+	// occaAtomicAdd(fy_node[ni], hgfy[i]);
+	// occaAtomicAdd(fz_node[ni], hgfz[i]);
       }
 #endif
 

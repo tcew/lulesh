@@ -9,7 +9,7 @@ ApplyAccelerationBoundaryConditionsForNodes_kernel(occaKernelInfoArg,
     const int i = occaGlobalId0;
     if (i < numNodeBC){
       if (i<numNodeBC) {
-	xyzdd[symm[i]] = cast_Real_t(0.0) ;
+	xyzdd[symm[i]] = Real_t(0.0) ;
       }
     }
   }

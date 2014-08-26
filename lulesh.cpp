@@ -8,7 +8,7 @@
 #include <assert.h>
 
 #define LULESH_SHOW_PROGRESS 1
-#define DOUBLE_PRECISION
+//#define DOUBLE_PRECISION
 //#define SAMI
 
 enum {
@@ -70,6 +70,8 @@ typedef real4  Real_t ;  /* floating point representation */
 
 template <typename T>
 void occaCheck(occa::memory &a){
+
+#ifndef NDEBUG
   const int n = a.bytes()/sizeof(T);
 
   if(n){
@@ -77,9 +79,15 @@ void occaCheck(occa::memory &a){
 
     a.copyTo(&(testA[0]));
 
-    for(int i=0; i<n; i++)
+    for(int i=0; i<n; i++){
+
+      if(testA[i] != testA[i])
+	std::cout<<"a["<<i<<"] = "<< testA[i] << std::endl;
+
       assert(testA[i] == testA[i]);
+    }
   }
+#endif
 }
 
 
@@ -177,6 +185,8 @@ Real_t CalcElemVolume( const Real_t x[8],
     CalcElemVolumeTemp( x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7],
 			y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7],
 			z[0], z[1], z[2], z[3], z[4], z[5], z[6], z[7]);
+
+  return volume;
 
 }
 
@@ -315,6 +325,8 @@ public:
   // Vector_d<Real_t> fz ;
   occa::memory fx, fy, fz;
 
+  occa::memory fx_elem, fy_elem, fz_elem;
+
   // Vector_d<Real_t> nodalMass ;    /* mass */
   occa::memory nodalMass;
 
@@ -392,6 +404,7 @@ public:
 
 void occaCheckDomain(Domain *domain){
 
+#ifndef NDEBUG
   occaCheck<Index_t>(domain->matElemlist);
   occaCheck<Index_t>(domain->nodelist);
   occaCheck<Index_t>(domain->lxim);
@@ -461,7 +474,7 @@ void occaCheckDomain(Domain *domain){
   occaCheck<Int_t>(domain->nodeElemCount);
   occaCheck<Int_t>(domain->nodeElemStart);
   occaCheck<Index_t>(domain->nodeElemCornerList);
-
+#endif
 }
 
 
@@ -500,17 +513,126 @@ void occaCheckDomain(Domain *domain){
 
 // }
 
+#if 0
 static void buildLuleshKernels(){
 
   occa::kernelInfo defs;
 
 #ifdef DOUBLE_PRECISION
   defs.addDefine("Real_t", "double");
-  defs.addDefine("cast_Real_t(a)", "((double)a)");
   defs.addDefine("DOUBLE_PRECISION", 1);
 #else
   defs.addDefine("Real_t", "float");
-  defs.addDefine("cast_Real_t(a)", "((float)a)");
+  defs.addDefine("DOUBLE_PRECISION", 0);
+#endif
+  defs.addDefine("Index_t", "int");
+  defs.addDefine("Int_t", "int");
+
+  AddNodeForcesFromElems_kernel =
+    occaHandle.buildKernelFromSource
+    ("AddNodeForcesFromElems_kernel.cu",
+     "AddNodeForcesFromElems_kernel", defs);
+
+  CalcAccelerationForNodes_kernel =
+    occaHandle.buildKernelFromSource
+    ("CalcAccelerationForNodes_kernel.cu",
+     "CalcAccelerationForNodes_kernel", defs);
+
+  ApplyAccelerationBoundaryConditionsForNodes_kernel =
+    occaHandle.buildKernelFromSource
+    ("ApplyAccelerationBoundaryConditionsForNodes_kernel.cu",
+     "ApplyAccelerationBoundaryConditionsForNodes_kernel",
+     defs);
+
+  CalcPositionAndVelocityForNodes_kernel =
+    occaHandle.buildKernelFromSource
+    ("CalcPositionAndVelocityForNodes_kernel.cu",
+     "CalcPositionAndVelocityForNodes_kernel", defs);
+
+  CalcKinematicsAndMonotonicQGradient_kernel =
+    occaHandle.buildKernelFromSource
+    ("CalcKinematicsAndMonotonicQGradient_kernel.cu",
+     "CalcKinematicsAndMonotonicQGradient_kernel", defs);
+
+  CalcMonotonicQRegionForElems_kernel =
+    occaHandle.buildKernelFromSource
+    ("CalcMonotonicQRegionForElems_kernel.cu",
+     "CalcMonotonicQRegionForElems_kernel", defs);
+
+  ApplyMaterialPropertiesAndUpdateVolume_kernel =
+    occaHandle.buildKernelFromSource
+    ("ApplyMaterialPropertiesAndUpdateVolume_kernel.cu",
+     "ApplyMaterialPropertiesAndUpdateVolume_kernel", defs);
+
+  const int simdWidth = 32;
+  {
+    const int block_size = 128;
+
+    occa::kernelInfo defs1 = defs;
+
+    defs1.addDefine("block_size", block_size);
+    defs1.addDefine("simdWidth", simdWidth);
+    CalcTimeConstraintsForElems_kernel =
+      occaHandle.buildKernelFromSource
+      ("CalcTimeConstraintsForElems_kernel.cu",
+       "CalcTimeConstraintsForElems_kernel", defs1);
+  }
+
+  {
+
+    const int max_dimGrid = 1024;
+    occa::kernelInfo defs1 = defs;
+
+    defs1.addDefine("block_size", max_dimGrid);
+    defs1.addDefine("simdWidth", simdWidth);
+
+    CalcMinDtOneBlock =
+      occaHandle.buildKernelFromSource
+      ("CalcMinDtOneBlock.cu",
+       "CalcMinDtOneBlock", defs1);
+  }
+
+
+  FillKernel =
+    occaHandle.buildKernelFromSource
+    ("Fill_kernel.cu", "Fill_kernel", defs);
+
+  ZeroKernel =
+    occaHandle.buildKernelFromSource
+    ("Zero_kernel.cu", "Zero_kernel");
+
+  {
+    occa::kernelInfo defs1 = defs;
+
+    defs1.addDefine("hourg_gt_zero", "true");
+    CalcVolumeForceForElems_kernel_true =
+      occaHandle.buildKernelFromSource
+      ("CalcVolumeForceForElems_kernel.cu",
+       "CalcVolumeForceForElems_kernel", defs1);
+  }
+
+  {
+    occa::kernelInfo defs1 = defs;
+    defs1.addDefine("hourg_gt_zero", "false");
+
+    CalcVolumeForceForElems_kernel_false =
+      occaHandle.buildKernelFromSource
+      ("CalcVolumeForceForElems_kernel.cu",
+       "CalcVolumeForceForElems_kernel", defs1);
+  }
+
+}
+
+#else
+static void buildLuleshKernels(){
+
+  occa::kernelInfo defs;
+
+#ifdef DOUBLE_PRECISION
+  defs.addDefine("Real_t", "double");
+  defs.addDefine("DOUBLE_PRECISION", 1);
+#else
+  defs.addDefine("Real_t", "float");
   defs.addDefine("DOUBLE_PRECISION", 0);
 #endif
   defs.addDefine("Index_t", "int");
@@ -611,13 +733,16 @@ static void buildLuleshKernels(){
 
 }
 
+#endif
 
 static void occa_init(){
 
   int plat = 0;
   int dev = 0;
 
-  occaHandle.setup("OpenCL", plat, dev);
+  occaHandle.setup("CUDA", plat, dev);
+  // occaHandle.setup("OpenMP", plat, dev);
+
 
   buildLuleshKernels();
 
@@ -625,18 +750,19 @@ static void occa_init(){
 
 #define MAX_THREAD_BLOCKS 65535
 
-occa::memory occaMalloc(const size_t nbytes, void *host_ptr = NULL){
+occa::memory occaMalloc(const size_t nbytes,
+			void *host_ptr = NULL){
 
-  occa::memory a;
+  occa::memory *a = new occa::memory;
 
   if(host_ptr != NULL){
 
-    a = occaHandle.malloc(nbytes, host_ptr);
+    *a = occaHandle.malloc(nbytes, host_ptr);
 
   }
   else{
 
-    a = occaHandle.malloc(nbytes);
+    *a = occaHandle.malloc(nbytes);
 
     size_t dim = 1;
     occa::dim inner(256);
@@ -650,10 +776,10 @@ occa::memory occaMalloc(const size_t nbytes, void *host_ptr = NULL){
 
     ZeroKernel.setWorkingDims(dim, inner, outer);
 
-    ZeroKernel(nbytes, a);
+    ZeroKernel(nbytes, *a);
   }
 
-  return a;
+  return *a;
 
 }
 
@@ -695,9 +821,42 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->tex_y.initialize(domain->y.raw(),domNodes);
   // domain->tex_z.initialize(domain->z.raw(),domNodes);
 
-  domain->tex_x = domain->x;
-  domain->tex_y = domain->y;
-  domain->tex_z = domain->z;
+  // domain->tex_x = domain->x;
+  // domain->tex_y = domain->y;
+  // domain->tex_z = domain->z;
+#ifndef DOUBLE_PRECISION
+  std::vector<float> tempX(domNodes);
+  std::vector<float> tempY(domNodes);
+  std::vector<float> tempZ(domNodes);
+
+  std::vector<float> testX(domNodes);
+  std::vector<float> testY(domNodes);
+  std::vector<float> testZ(domNodes);
+
+
+  domain->x.copyTo(&(tempX[0]));
+  domain->y.copyTo(&(tempY[0]));
+  domain->z.copyTo(&(tempZ[0]));
+
+  domain->tex_x = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readOnly);
+  domain->tex_y = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readOnly);
+  domain->tex_z = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readOnly);
+
+  occaCheck<Real_t>(domain->tex_x);
+  occaCheck<Real_t>(domain->tex_y);
+  occaCheck<Real_t>(domain->tex_z);
+
+  domain->tex_x.copyTo(&(testX[0]));
+  domain->tex_y.copyTo(&(testY[0]));
+  domain->tex_z.copyTo(&(testZ[0]));
+
+  for(int i=0; i<domNodes; i++){
+    assert(tempX[i] == testX[i]);
+    assert(tempY[i] == testY[i]);
+    assert(tempZ[i] == testZ[i]);
+  }
+
+#endif
 
 
   // domain->xd.resize(domNodes) ; /* velocities */
@@ -712,10 +871,33 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->tex_yd.initialize(domain->yd.raw(),domNodes);
   // domain->tex_zd.initialize(domain->zd.raw(),domNodes);
 
-  domain->tex_xd = domain->xd;
-  domain->tex_yd = domain->yd;
-  domain->tex_zd = domain->zd;
+  // domain->tex_xd = domain->xd;
+  // domain->tex_yd = domain->yd;
+  // domain->tex_zd = domain->zd;
+#ifndef DOUBLE_PRECISION
+  domain->xd.copyTo(&(tempX[0]));
+  domain->yd.copyTo(&(tempY[0]));
+  domain->zd.copyTo(&(tempZ[0]));
 
+  domain->tex_xd = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readOnly);
+  domain->tex_yd = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readOnly);
+  domain->tex_zd = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readOnly);
+
+  occaCheck<Real_t>(domain->tex_xd);
+  occaCheck<Real_t>(domain->tex_yd);
+  occaCheck<Real_t>(domain->tex_zd);
+
+  domain->tex_xd.copyTo(&(testX[0]));
+  domain->tex_yd.copyTo(&(testY[0]));
+  domain->tex_zd.copyTo(&(testZ[0]));
+
+  for(int i=0; i<domNodes; i++){
+    assert(tempX[i] == testX[i]);
+    assert(tempY[i] == testY[i]);
+    assert(tempZ[i] == testZ[i]);
+  }
+
+#endif
   // domain->xdd.resize(domNodes) ; /* accelerations */
   // domain->ydd.resize(domNodes) ;
   // domain->zdd.resize(domNodes) ;
@@ -735,8 +917,8 @@ void AllocateNodalPersistent(Domain* domain,
 }
 
 void AllocateElemPersistent(Domain* domain, size_t domElems, size_t padded_domElems){
-   // domain->matElemlist.resize(domElems) ;  /* material indexset */
-   // domain->nodelist.resize(8*padded_domElems) ;   /* elemToNode connectivity */
+  // domain->matElemlist.resize(domElems) ;  /* material indexset */
+  // domain->nodelist.resize(8*padded_domElems) ;   /* elemToNode connectivity */
   domain->matElemlist = occaMalloc(domElems*sizeof(Index_t));
   domain->nodelist = occaMalloc(8*padded_domElems*sizeof(Index_t));
 
@@ -808,27 +990,27 @@ void AllocateSymmZ(Domain* domain, size_t size){
 
 void InitializeFields(Domain* domain){
   /* Basic Field Initialization */
- // thrust::fill(domain->ss.begin(),domain->ss.end(),0.);
- // thrust::fill(domain->e.begin(),domain->e.end(),0.);
- // thrust::fill(domain->p.begin(),domain->p.end(),0.);
- // thrust::fill(domain->q.begin(),domain->q.end(),0.);
- // thrust::fill(domain->v.begin(),domain->v.end(),1.);
+  // thrust::fill(domain->ss.begin(),domain->ss.end(),0.);
+  // thrust::fill(domain->e.begin(),domain->e.end(),0.);
+  // thrust::fill(domain->p.begin(),domain->p.end(),0.);
+  // thrust::fill(domain->q.begin(),domain->q.end(),0.);
+  // thrust::fill(domain->v.begin(),domain->v.end(),1.);
   fill(domain->ss, 0.);
   fill(domain->e, 0.);
   fill(domain->p, 0.);
   fill(domain->q, 0.);
   fill(domain->v, 1.);
 
- // thrust::fill(domain->xd.begin(),domain->xd.end(),0.);
- // thrust::fill(domain->yd.begin(),domain->yd.end(),0.);
- // thrust::fill(domain->zd.begin(),domain->zd.end(),0.);
+  // thrust::fill(domain->xd.begin(),domain->xd.end(),0.);
+  // thrust::fill(domain->yd.begin(),domain->yd.end(),0.);
+  // thrust::fill(domain->zd.begin(),domain->zd.end(),0.);
   fill(domain->xd, 0.);
   fill(domain->yd, 0.);
   fill(domain->zd, 0.);
 
- // thrust::fill(domain->xdd.begin(),domain->xdd.end(),0.);
- // thrust::fill(domain->ydd.begin(),domain->ydd.end(),0.);
- // thrust::fill(domain->zdd.begin(),domain->zdd.end(),0.);
+  // thrust::fill(domain->xdd.begin(),domain->xdd.end(),0.);
+  // thrust::fill(domain->ydd.begin(),domain->ydd.end(),0.);
+  // thrust::fill(domain->zdd.begin(),domain->zdd.end(),0.);
   fill(domain->xdd, 0.);
   fill(domain->ydd, 0.);
   fill(domain->zdd, 0.);
@@ -901,450 +1083,450 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
   std::vector<Real_t> z_h;
 
   if (structured)
-  {
-    Real_t tx, ty, tz ;
-    Index_t nidx, zidx;
+    {
+      Real_t tx, ty, tz ;
+      Index_t nidx, zidx;
 
-    Index_t edgeElems = nx ;
-    Index_t edgeNodes = edgeElems+1 ;
+      Index_t edgeElems = nx ;
+      Index_t edgeNodes = edgeElems+1 ;
 
-    domain->sizeX = edgeElems ;
-    domain->sizeY = edgeElems ;
-    domain->sizeZ = edgeElems ;
-    domain->numElem = domain->sizeX*domain->sizeY*domain->sizeZ ;
-    domain->padded_numElem = PAD(domain->numElem,32);
+      domain->sizeX = edgeElems ;
+      domain->sizeY = edgeElems ;
+      domain->sizeZ = edgeElems ;
+      domain->numElem = domain->sizeX*domain->sizeY*domain->sizeZ ;
+      domain->padded_numElem = PAD(domain->numElem,32);
 
-    domain->numNode = (domain->sizeX+1)*(domain->sizeY+1)*(domain->sizeZ+1) ;
-    domain->padded_numNode = PAD(domain->numNode,32);
+      domain->numNode = (domain->sizeX+1)*(domain->sizeY+1)*(domain->sizeZ+1) ;
+      domain->padded_numNode = PAD(domain->numNode,32);
 
-    domElems = domain->numElem ;
-    domNodes = domain->numNode ;
-    padded_domElems = domain->padded_numElem ;
+      domElems = domain->numElem ;
+      domNodes = domain->numNode ;
+      padded_domElems = domain->padded_numElem ;
 
-    AllocateElemPersistent(domain,domElems,padded_domElems);
-    AllocateNodalPersistent(domain,domNodes);
+      AllocateElemPersistent(domain,domElems,padded_domElems);
+      AllocateNodalPersistent(domain,domNodes);
 
-    InitializeFields(domain);
+      InitializeFields(domain);
 
-    /* initialize nodal coordinates */
+      /* initialize nodal coordinates */
 
-    x_h.resize(domNodes);
-    y_h.resize(domNodes);
-    z_h.resize(domNodes);
+      x_h.resize(domNodes);
+      y_h.resize(domNodes);
+      z_h.resize(domNodes);
 
-    nidx = 0 ;
-    tz = Real_t(0.0) ;
-    for (Index_t plane=0; plane<edgeNodes; ++plane) {
-       ty = Real_t(0.0) ;
-       for (Index_t row=0; row<edgeNodes; ++row) {
+      nidx = 0 ;
+      tz = Real_t(0.0) ;
+      for (Index_t plane=0; plane<edgeNodes; ++plane) {
+	ty = Real_t(0.0) ;
+	for (Index_t row=0; row<edgeNodes; ++row) {
           tx = Real_t(0.0) ;
           for (Index_t col=0; col<edgeNodes; ++col) {
-             x_h[nidx] = tx ;
-             y_h[nidx] = ty ;
-             z_h[nidx] = tz ;
-             ++nidx ;
-             tx = Real_t(1.125)*Real_t(col+1)/Real_t(nx) ;
+	    x_h[nidx] = tx ;
+	    y_h[nidx] = ty ;
+	    z_h[nidx] = tz ;
+	    ++nidx ;
+	    tx = Real_t(1.125)*Real_t(col+1)/Real_t(nx) ;
           }
           ty = Real_t(1.125)*Real_t(row+1)/Real_t(nx) ;
-       }
-       tz = Real_t(1.125)*Real_t(plane+1)/Real_t(nx) ;
-    }
+	}
+	tz = Real_t(1.125)*Real_t(plane+1)/Real_t(nx) ;
+      }
 
-    // domain->x = x_h;
-    // domain->y = y_h;
-    // domain->z = z_h;
-    domain->x.copyFrom(&(x_h[0]));
-    domain->y.copyFrom(&(y_h[0]));
-    domain->z.copyFrom(&(z_h[0]));
+      // domain->x = x_h;
+      // domain->y = y_h;
+      // domain->z = z_h;
+      domain->x.copyFrom(&(x_h[0]));
+      domain->y.copyFrom(&(y_h[0]));
+      domain->z.copyFrom(&(z_h[0]));
 
-    /* embed hexehedral elements in nodal point lattice */
+      /* embed hexehedral elements in nodal point lattice */
 
-    nodelist_h.resize(padded_domElems*8);
-    nidx = 0 ;
-    zidx = 0 ;
-    for (Index_t plane=0; plane<edgeElems; ++plane) {
-       for (Index_t row=0; row<edgeElems; ++row) {
+      nodelist_h.resize(padded_domElems*8);
+      nidx = 0 ;
+      zidx = 0 ;
+      for (Index_t plane=0; plane<edgeElems; ++plane) {
+	for (Index_t row=0; row<edgeElems; ++row) {
           for (Index_t col=0; col<edgeElems; ++col) {
-             nodelist_h[0*padded_domElems+zidx] = nidx                                       ;
-             nodelist_h[1*padded_domElems+zidx] = nidx                                   + 1 ;
-             nodelist_h[2*padded_domElems+zidx] = nidx                       + edgeNodes + 1 ;
-             nodelist_h[3*padded_domElems+zidx] = nidx                       + edgeNodes     ;
-             nodelist_h[4*padded_domElems+zidx] = nidx + edgeNodes*edgeNodes                 ;
-             nodelist_h[5*padded_domElems+zidx] = nidx + edgeNodes*edgeNodes             + 1 ;
-             nodelist_h[6*padded_domElems+zidx] = nidx + edgeNodes*edgeNodes + edgeNodes + 1 ;
-             nodelist_h[7*padded_domElems+zidx] = nidx + edgeNodes*edgeNodes + edgeNodes     ;
-             ++zidx ;
-             ++nidx ;
+	    nodelist_h[0*padded_domElems+zidx] = nidx                                       ;
+	    nodelist_h[1*padded_domElems+zidx] = nidx                                   + 1 ;
+	    nodelist_h[2*padded_domElems+zidx] = nidx                       + edgeNodes + 1 ;
+	    nodelist_h[3*padded_domElems+zidx] = nidx                       + edgeNodes     ;
+	    nodelist_h[4*padded_domElems+zidx] = nidx + edgeNodes*edgeNodes                 ;
+	    nodelist_h[5*padded_domElems+zidx] = nidx + edgeNodes*edgeNodes             + 1 ;
+	    nodelist_h[6*padded_domElems+zidx] = nidx + edgeNodes*edgeNodes + edgeNodes + 1 ;
+	    nodelist_h[7*padded_domElems+zidx] = nidx + edgeNodes*edgeNodes + edgeNodes     ;
+	    ++zidx ;
+	    ++nidx ;
           }
           ++nidx ;
-       }
-       nidx += edgeNodes ;
-    }
-    //    domain->nodelist = nodelist_h;
-    domain->nodelist.copyFrom(&(nodelist_h[0]));
+	}
+	nidx += edgeNodes ;
+      }
+      //    domain->nodelist = nodelist_h;
+      domain->nodelist.copyFrom(&(nodelist_h[0]));
 
-    domain->numSymmX = (edgeElems+1)*(edgeElems+1) ;
-    domain->numSymmY = (edgeElems+1)*(edgeElems+1) ;
-    domain->numSymmZ = (edgeElems+1)*(edgeElems+1) ;
+      domain->numSymmX = (edgeElems+1)*(edgeElems+1) ;
+      domain->numSymmY = (edgeElems+1)*(edgeElems+1) ;
+      domain->numSymmZ = (edgeElems+1)*(edgeElems+1) ;
 
-    AllocateSymmX(domain,edgeNodes*edgeNodes);
-    AllocateSymmY(domain,edgeNodes*edgeNodes);
-    AllocateSymmZ(domain,edgeNodes*edgeNodes);
+      AllocateSymmX(domain,edgeNodes*edgeNodes);
+      AllocateSymmY(domain,edgeNodes*edgeNodes);
+      AllocateSymmZ(domain,edgeNodes*edgeNodes);
 
-    /* set up symmetry nodesets */
+      /* set up symmetry nodesets */
 
-    // Vector_h<Index_t> symmX_h(domain->symmX.size());
-    // Vector_h<Index_t> symmY_h(domain->symmY.size());
-    // Vector_h<Index_t> symmZ_h(domain->symmZ.size());
+      // Vector_h<Index_t> symmX_h(domain->symmX.size());
+      // Vector_h<Index_t> symmY_h(domain->symmY.size());
+      // Vector_h<Index_t> symmZ_h(domain->symmZ.size());
 
-    std::vector<Index_t> symmX_h(domain->symmX.bytes()/sizeof(Index_t));
-    std::vector<Index_t> symmY_h(domain->symmY.bytes()/sizeof(Index_t));
-    std::vector<Index_t> symmZ_h(domain->symmZ.bytes()/sizeof(Index_t));
+      std::vector<Index_t> symmX_h(domain->symmX.bytes()/sizeof(Index_t));
+      std::vector<Index_t> symmY_h(domain->symmY.bytes()/sizeof(Index_t));
+      std::vector<Index_t> symmZ_h(domain->symmZ.bytes()/sizeof(Index_t));
 
-    nidx = 0 ;
-    for (Index_t i=0; i<edgeNodes; ++i) {
-       Index_t planeInc = i*edgeNodes*edgeNodes ;
-       Index_t rowInc   = i*edgeNodes ;
-       for (Index_t j=0; j<edgeNodes; ++j) {
+      nidx = 0 ;
+      for (Index_t i=0; i<edgeNodes; ++i) {
+	Index_t planeInc = i*edgeNodes*edgeNodes ;
+	Index_t rowInc   = i*edgeNodes ;
+	for (Index_t j=0; j<edgeNodes; ++j) {
           symmX_h[nidx] = planeInc + j*edgeNodes ;
           symmY_h[nidx] = planeInc + j ;
           symmZ_h[nidx] = rowInc   + j ;
           ++nidx ;
-       }
-    }
-
-    // domain->symmX = symmX_h;
-    // domain->symmY = symmY_h;
-    // domain->symmZ = symmZ_h;
-    domain->symmX.copyFrom(&(symmX_h[0]));
-    domain->symmY.copyFrom(&(symmY_h[0]));
-    domain->symmZ.copyFrom(&(symmZ_h[0]));
-
-
-    // Vector_h<Index_t> lxim_h(domElems);
-    // Vector_h<Index_t> lxip_h(domElems);
-    // Vector_h<Index_t> letam_h(domElems);
-    // Vector_h<Index_t> letap_h(domElems);
-    // Vector_h<Index_t> lzetam_h(domElems);
-    // Vector_h<Index_t> lzetap_h(domElems);
-
-    std::vector<Index_t> lxim_h(domElems);
-    std::vector<Index_t> lxip_h(domElems);
-    std::vector<Index_t> letam_h(domElems);
-    std::vector<Index_t> letap_h(domElems);
-    std::vector<Index_t> lzetam_h(domElems);
-    std::vector<Index_t> lzetap_h(domElems);
-
-    /* set up elemement connectivity information */
-    lxim_h[0] = 0 ;
-    for (Index_t i=1; i<domElems; ++i) {
-       lxim_h[i]   = i-1 ;
-       lxip_h[i-1] = i ;
-    }
-    lxip_h[domElems-1] = domElems-1 ;
-
-    for (Index_t i=0; i<edgeElems; ++i) {
-       letam_h[i] = i ;
-       letap_h[domElems-edgeElems+i] = domElems-edgeElems+i ;
-    }
-    for (Index_t i=edgeElems; i<domElems; ++i) {
-       letam_h[i] = i-edgeElems ;
-       letap_h[i-edgeElems] = i ;
-    }
-
-    for (Index_t i=0; i<edgeElems*edgeElems; ++i) {
-       lzetam_h[i] = i ;
-       lzetap_h[domElems-edgeElems*edgeElems+i] = domElems-edgeElems*edgeElems+i ;
-    }
-    for (Index_t i=edgeElems*edgeElems; i<domElems; ++i) {
-       lzetam_h[i] = i - edgeElems*edgeElems ;
-       lzetap_h[i-edgeElems*edgeElems] = i ;
-    }
-
-    /* set up boundary condition information */
-    // Vector_h<Index_t> elemBC_h(domElems);
-    std::vector<Index_t> elemBC_h(domElems);
-    for (Index_t i=0; i<domElems; ++i) {
-       elemBC_h[i] = 0 ;  /* clear BCs by default */
-    }
-
-    /* symmetry plane or free surface BCs */
-    for (Index_t i=0; i<edgeElems; ++i) {
-	  	Index_t planeInc = i*edgeElems*edgeElems ;
-	  	Index_t rowInc   = i*edgeElems ;
-      for (Index_t j=0; j<edgeElems; ++j) {
-
-	  		elemBC_h[planeInc+j*edgeElems] |= XI_M_SYMM ;
-	  		elemBC_h[planeInc+j*edgeElems+edgeElems-1] |= XI_P_FREE ;
-	  		elemBC_h[planeInc+j] |= ETA_M_SYMM ;
-	  		elemBC_h[planeInc+j+edgeElems*edgeElems-edgeElems] |= ETA_P_FREE ;
-	  		elemBC_h[rowInc+j] |= ZETA_M_SYMM ;
-	  		elemBC_h[rowInc+j+domElems-edgeElems*edgeElems] |= ZETA_P_FREE ;
+	}
       }
+
+      // domain->symmX = symmX_h;
+      // domain->symmY = symmY_h;
+      // domain->symmZ = symmZ_h;
+      domain->symmX.copyFrom(&(symmX_h[0]));
+      domain->symmY.copyFrom(&(symmY_h[0]));
+      domain->symmZ.copyFrom(&(symmZ_h[0]));
+
+
+      // Vector_h<Index_t> lxim_h(domElems);
+      // Vector_h<Index_t> lxip_h(domElems);
+      // Vector_h<Index_t> letam_h(domElems);
+      // Vector_h<Index_t> letap_h(domElems);
+      // Vector_h<Index_t> lzetam_h(domElems);
+      // Vector_h<Index_t> lzetap_h(domElems);
+
+      std::vector<Index_t> lxim_h(domElems);
+      std::vector<Index_t> lxip_h(domElems);
+      std::vector<Index_t> letam_h(domElems);
+      std::vector<Index_t> letap_h(domElems);
+      std::vector<Index_t> lzetam_h(domElems);
+      std::vector<Index_t> lzetap_h(domElems);
+
+      /* set up elemement connectivity information */
+      lxim_h[0] = 0 ;
+      for (Index_t i=1; i<domElems; ++i) {
+	lxim_h[i]   = i-1 ;
+	lxip_h[i-1] = i ;
+      }
+      lxip_h[domElems-1] = domElems-1 ;
+
+      for (Index_t i=0; i<edgeElems; ++i) {
+	letam_h[i] = i ;
+	letap_h[domElems-edgeElems+i] = domElems-edgeElems+i ;
+      }
+      for (Index_t i=edgeElems; i<domElems; ++i) {
+	letam_h[i] = i-edgeElems ;
+	letap_h[i-edgeElems] = i ;
+      }
+
+      for (Index_t i=0; i<edgeElems*edgeElems; ++i) {
+	lzetam_h[i] = i ;
+	lzetap_h[domElems-edgeElems*edgeElems+i] = domElems-edgeElems*edgeElems+i ;
+      }
+      for (Index_t i=edgeElems*edgeElems; i<domElems; ++i) {
+	lzetam_h[i] = i - edgeElems*edgeElems ;
+	lzetap_h[i-edgeElems*edgeElems] = i ;
+      }
+
+      /* set up boundary condition information */
+      // Vector_h<Index_t> elemBC_h(domElems);
+      std::vector<Index_t> elemBC_h(domElems);
+      for (Index_t i=0; i<domElems; ++i) {
+	elemBC_h[i] = 0 ;  /* clear BCs by default */
+      }
+
+      /* symmetry plane or free surface BCs */
+      for (Index_t i=0; i<edgeElems; ++i) {
+	Index_t planeInc = i*edgeElems*edgeElems ;
+	Index_t rowInc   = i*edgeElems ;
+	for (Index_t j=0; j<edgeElems; ++j) {
+
+	  elemBC_h[planeInc+j*edgeElems] |= XI_M_SYMM ;
+	  elemBC_h[planeInc+j*edgeElems+edgeElems-1] |= XI_P_FREE ;
+	  elemBC_h[planeInc+j] |= ETA_M_SYMM ;
+	  elemBC_h[planeInc+j+edgeElems*edgeElems-edgeElems] |= ETA_P_FREE ;
+	  elemBC_h[rowInc+j] |= ZETA_M_SYMM ;
+	  elemBC_h[rowInc+j+domElems-edgeElems*edgeElems] |= ZETA_P_FREE ;
+	}
+      }
+
+      // domain->lxim = lxim_h;
+      // domain->lxip = lxip_h;
+      // domain->letam = letam_h;
+      // domain->letap = letap_h;
+      // domain->lzetam = lzetam_h;
+      // domain->lzetap = lzetap_h;
+      // domain->elemBC = elemBC_h;
+      domain->lxim.copyFrom(&(lxim_h[0]));
+      domain->lxip.copyFrom(&(lxip_h[0]));
+      domain->letam.copyFrom(&(letam_h[0]));
+      domain->letap.copyFrom(&(letap_h[0]));
+      domain->lzetam.copyFrom(&(lzetam_h[0]));
+      domain->lzetap.copyFrom(&(lzetap_h[0]));
+      domain->elemBC.copyFrom(&(elemBC_h[0]));
+
+      /* deposit energy */
+      domain->octantCorner = 0;
+      // domain->e[domain->octantCorner] = Real_t(3.948746e+7) ;
+
+      Real_t val = Real_t(3.948746e+7);
+
+      domain->e.copyFrom(&val, sizeof(Real_t), 0);
     }
-
-    // domain->lxim = lxim_h;
-    // domain->lxip = lxip_h;
-    // domain->letam = letam_h;
-    // domain->letap = letap_h;
-    // domain->lzetam = lzetam_h;
-    // domain->lzetap = lzetap_h;
-    // domain->elemBC = elemBC_h;
-    domain->lxim.copyFrom(&(lxim_h[0]));
-    domain->lxip.copyFrom(&(lxip_h[0]));
-    domain->letam.copyFrom(&(letam_h[0]));
-    domain->letap.copyFrom(&(letap_h[0]));
-    domain->lzetam.copyFrom(&(lzetam_h[0]));
-    domain->lzetap.copyFrom(&(lzetap_h[0]));
-    domain->elemBC.copyFrom(&(elemBC_h[0]));
-
-    /* deposit energy */
-    domain->octantCorner = 0;
-    // domain->e[domain->octantCorner] = Real_t(3.948746e+7) ;
-
-    Real_t val = Real_t(3.948746e+7);
-
-    domain->e.copyFrom(&val, sizeof(Real_t), 0);
-  }
   else
-  {
-    FILE *fp;
-    int ee, en;
+    {
+      FILE *fp;
+      int ee, en;
 
-    if ((fp = fopen(argv[2], "r")) == 0) {
-       printf("could not open file %s\n", argv[2]) ;
-       exit( LFileError ) ;
-    }
+      if ((fp = fopen(argv[2], "r")) == 0) {
+	printf("could not open file %s\n", argv[2]) ;
+	exit( LFileError ) ;
+      }
 
-    bool fsuccess;
-    fsuccess = fscanf(fp, "%d %d", &ee, &en) ;
-    domain->numElem = Index_t(ee);
-    domain->padded_numElem = PAD(domain->numElem,32);
+      bool fsuccess;
+      fsuccess = fscanf(fp, "%d %d", &ee, &en) ;
+      domain->numElem = Index_t(ee);
+      domain->padded_numElem = PAD(domain->numElem,32);
 
-    domain->numNode = Index_t(en);
-    domain->padded_numNode = PAD(domain->numNode,32);
+      domain->numNode = Index_t(en);
+      domain->padded_numNode = PAD(domain->numNode,32);
 
-    domElems = domain->numElem ;
-    domNodes = domain->numNode ;
-    padded_domElems = domain->padded_numElem ;
+      domElems = domain->numElem ;
+      domNodes = domain->numNode ;
+      padded_domElems = domain->padded_numElem ;
 
-    AllocateElemPersistent(domain,domElems,padded_domElems);
-    AllocateNodalPersistent(domain,domNodes);
+      AllocateElemPersistent(domain,domElems,padded_domElems);
+      AllocateNodalPersistent(domain,domNodes);
 
-    InitializeFields(domain);
+      InitializeFields(domain);
 
-    /* initialize nodal coordinates */
-    x_h.resize(domNodes);
-    y_h.resize(domNodes);
-    z_h.resize(domNodes);
+      /* initialize nodal coordinates */
+      x_h.resize(domNodes);
+      y_h.resize(domNodes);
+      z_h.resize(domNodes);
 
-    for (Index_t i=0; i<domNodes; ++i) {
-       double px, py, pz ;
-       fsuccess = fscanf(fp, "%lf %lf %lf", &px, &py, &pz) ;
-       x_h[i] = Real_t(px) ;
-       y_h[i] = Real_t(py) ;
-       z_h[i] = Real_t(pz) ;
-    }
-    // domain->x = x_h;
-    // domain->y = y_h;
-    // domain->z = z_h;
-    domain->x.copyFrom(&(x_h[0]));
-    domain->y.copyFrom(&(y_h[0]));
-    domain->z.copyFrom(&(z_h[0]));
+      for (Index_t i=0; i<domNodes; ++i) {
+	double px, py, pz ;
+	fsuccess = fscanf(fp, "%lf %lf %lf", &px, &py, &pz) ;
+	x_h[i] = Real_t(px) ;
+	y_h[i] = Real_t(py) ;
+	z_h[i] = Real_t(pz) ;
+      }
+      // domain->x = x_h;
+      // domain->y = y_h;
+      // domain->z = z_h;
+      domain->x.copyFrom(&(x_h[0]));
+      domain->y.copyFrom(&(y_h[0]));
+      domain->z.copyFrom(&(z_h[0]));
 
-    /* embed hexehedral elements in nodal point lattice */
-    nodelist_h.resize(padded_domElems*8);
-    for (Index_t zidx=0; zidx<domElems; ++zidx) {
-       for (Index_t ni=0; ni<Index_t(8); ++ni) {
+      /* embed hexehedral elements in nodal point lattice */
+      nodelist_h.resize(padded_domElems*8);
+      for (Index_t zidx=0; zidx<domElems; ++zidx) {
+	for (Index_t ni=0; ni<Index_t(8); ++ni) {
           int n ;
           fsuccess = fscanf(fp, "%d", &n) ;
           nodelist_h[ni*padded_domElems+zidx] = Index_t(n);
-       }
-    }
-    // domain->nodelist = nodelist_h;
-    domain->nodelist.copyFrom(&(nodelist_h[0]));
+	}
+      }
+      // domain->nodelist = nodelist_h;
+      domain->nodelist.copyFrom(&(nodelist_h[0]));
 
-    /* set up face-based element neighbors */
-    // Vector_h<Index_t> lxim_h(domElems);
-    // Vector_h<Index_t> lxip_h(domElems);
-    // Vector_h<Index_t> letam_h(domElems);
-    // Vector_h<Index_t> letap_h(domElems);
-    // Vector_h<Index_t> lzetam_h(domElems);
-    // Vector_h<Index_t> lzetap_h(domElems);
+      /* set up face-based element neighbors */
+      // Vector_h<Index_t> lxim_h(domElems);
+      // Vector_h<Index_t> lxip_h(domElems);
+      // Vector_h<Index_t> letam_h(domElems);
+      // Vector_h<Index_t> letap_h(domElems);
+      // Vector_h<Index_t> lzetam_h(domElems);
+      // Vector_h<Index_t> lzetap_h(domElems);
 
-    std::vector<Index_t> lxim_h(domElems);
-    std::vector<Index_t> lxip_h(domElems);
-    std::vector<Index_t> letam_h(domElems);
-    std::vector<Index_t> letap_h(domElems);
-    std::vector<Index_t> lzetam_h(domElems);
-    std::vector<Index_t> lzetap_h(domElems);
+      std::vector<Index_t> lxim_h(domElems);
+      std::vector<Index_t> lxip_h(domElems);
+      std::vector<Index_t> letam_h(domElems);
+      std::vector<Index_t> letap_h(domElems);
+      std::vector<Index_t> lzetam_h(domElems);
+      std::vector<Index_t> lzetap_h(domElems);
 
-    for (Index_t i=0; i<domElems; ++i) {
-       int xi_m, xi_p, eta_m, eta_p, zeta_m, zeta_p ;
-       fsuccess = fscanf(fp, "%d %d %d %d %d %d",
-             &xi_m, &xi_p, &eta_m, &eta_p, &zeta_m, &zeta_p) ;
+      for (Index_t i=0; i<domElems; ++i) {
+	int xi_m, xi_p, eta_m, eta_p, zeta_m, zeta_p ;
+	fsuccess = fscanf(fp, "%d %d %d %d %d %d",
+			  &xi_m, &xi_p, &eta_m, &eta_p, &zeta_m, &zeta_p) ;
 
-       lxim_h[i]   = Index_t(xi_m) ;
-       lxip_h[i]   = Index_t(xi_p) ;
-       letam_h[i]  = Index_t(eta_m) ;
-       letap_h[i]  = Index_t(eta_p) ;
-       lzetam_h[i] = Index_t(zeta_m) ;
-       lzetap_h[i] = Index_t(zeta_p) ;
-    }
+	lxim_h[i]   = Index_t(xi_m) ;
+	lxip_h[i]   = Index_t(xi_p) ;
+	letam_h[i]  = Index_t(eta_m) ;
+	letap_h[i]  = Index_t(eta_p) ;
+	lzetam_h[i] = Index_t(zeta_m) ;
+	lzetap_h[i] = Index_t(zeta_p) ;
+      }
 
-    // domain->lxim = lxim_h;
-    // domain->lxip = lxip_h;
-    // domain->letam = letam_h;
-    // domain->letap = letap_h;
-    // domain->lzetam = lzetam_h;
-    // domain->lzetap = lzetap_h;
-    domain->lxim.copyFrom(&(lxim_h[0]));
-    domain->lxip.copyFrom(&(lxip_h[0]));
-    domain->letam.copyFrom(&(letam_h[0]));
-    domain->letap.copyFrom(&(letap_h[0]));
-    domain->lzetam.copyFrom(&(lzetam_h[0]));
-    domain->lzetap.copyFrom(&(lzetap_h[0]));
+      // domain->lxim = lxim_h;
+      // domain->lxip = lxip_h;
+      // domain->letam = letam_h;
+      // domain->letap = letap_h;
+      // domain->lzetam = lzetam_h;
+      // domain->lzetap = lzetap_h;
+      domain->lxim.copyFrom(&(lxim_h[0]));
+      domain->lxip.copyFrom(&(lxip_h[0]));
+      domain->letam.copyFrom(&(letam_h[0]));
+      domain->letap.copyFrom(&(letap_h[0]));
+      domain->lzetam.copyFrom(&(lzetam_h[0]));
+      domain->lzetap.copyFrom(&(lzetap_h[0]));
 
-    /* set up X symmetry nodeset */
+      /* set up X symmetry nodeset */
 
-    fsuccess = fscanf(fp, "%d", &domain->numSymmX) ;
-    // Vector_h<Index_t> symmX_h(domain->numSymmX);
-    std::vector<Index_t> symmX_h(domain->numSymmX);
-    for (Index_t i=0; i<domain->numSymmX; ++i) {
-       int n ;
-       fsuccess = fscanf(fp, "%d", &n) ;
-       symmX_h[i] = Index_t(n) ;
-    }
-    // domain->symmX = symmX_h;
-    domain->symmX.copyFrom(&(symmX_h[0]));
+      fsuccess = fscanf(fp, "%d", &domain->numSymmX) ;
+      // Vector_h<Index_t> symmX_h(domain->numSymmX);
+      std::vector<Index_t> symmX_h(domain->numSymmX);
+      for (Index_t i=0; i<domain->numSymmX; ++i) {
+	int n ;
+	fsuccess = fscanf(fp, "%d", &n) ;
+	symmX_h[i] = Index_t(n) ;
+      }
+      // domain->symmX = symmX_h;
+      domain->symmX.copyFrom(&(symmX_h[0]));
 
-    fsuccess = fscanf(fp, "%d", &domain->numSymmY) ;
-    // Vector_h<Index_t> symmY_h(domain->numSymmY);
-    std::vector<Index_t> symmY_h(domain->numSymmY);
-    for (Index_t i=0; i<domain->numSymmY; ++i) {
-       int n ;
-       fsuccess = fscanf(fp, "%d", &n) ;
-       symmY_h[i] = Index_t(n) ;
-    }
-    // domain->symmY = symmY_h;
-    domain->symmY.copyFrom(&(symmY_h[0]));
+      fsuccess = fscanf(fp, "%d", &domain->numSymmY) ;
+      // Vector_h<Index_t> symmY_h(domain->numSymmY);
+      std::vector<Index_t> symmY_h(domain->numSymmY);
+      for (Index_t i=0; i<domain->numSymmY; ++i) {
+	int n ;
+	fsuccess = fscanf(fp, "%d", &n) ;
+	symmY_h[i] = Index_t(n) ;
+      }
+      // domain->symmY = symmY_h;
+      domain->symmY.copyFrom(&(symmY_h[0]));
 
-    fsuccess = fscanf(fp, "%d", &domain->numSymmZ) ;
-    // Vector_h<Index_t> symmZ_h(domain->numSymmZ);
-    std::vector<Index_t> symmZ_h(domain->numSymmZ);
-    for (Index_t i=0; i<domain->numSymmZ; ++i) {
-       int n ;
-       fsuccess = fscanf(fp, "%d", &n) ;
-       symmZ_h[i] = Index_t(n) ;
-    }
-    // domain->symmZ = symmZ_h;
-    domain->symmZ.copyFrom(&(symmZ_h[0]));
-    /* set up free surface nodeset */
-    Index_t numFreeSurf;
-    fsuccess = fscanf(fp, "%d", &numFreeSurf) ;
-    // Vector_h<Index_t> freeSurf_h(numFreeSurf);
-    std::vector<Index_t> freeSurf_h(numFreeSurf);
-    for (Index_t i=0; i<numFreeSurf; ++i) {
-       int n ;
-       fsuccess = fscanf(fp, "%d", &n) ;
-       freeSurf_h[i] = Index_t(n) ;
-    }
+      fsuccess = fscanf(fp, "%d", &domain->numSymmZ) ;
+      // Vector_h<Index_t> symmZ_h(domain->numSymmZ);
+      std::vector<Index_t> symmZ_h(domain->numSymmZ);
+      for (Index_t i=0; i<domain->numSymmZ; ++i) {
+	int n ;
+	fsuccess = fscanf(fp, "%d", &n) ;
+	symmZ_h[i] = Index_t(n) ;
+      }
+      // domain->symmZ = symmZ_h;
+      domain->symmZ.copyFrom(&(symmZ_h[0]));
+      /* set up free surface nodeset */
+      Index_t numFreeSurf;
+      fsuccess = fscanf(fp, "%d", &numFreeSurf) ;
+      // Vector_h<Index_t> freeSurf_h(numFreeSurf);
+      std::vector<Index_t> freeSurf_h(numFreeSurf);
+      for (Index_t i=0; i<numFreeSurf; ++i) {
+	int n ;
+	fsuccess = fscanf(fp, "%d", &n) ;
+	freeSurf_h[i] = Index_t(n) ;
+      }
 
-    fclose(fp);
+      fclose(fp);
 
-    /* set up boundary condition information */
-    // Vector_h<Index_t> elemBC_h(domElems);
-    // Vector_h<Index_t> surfaceNode_h(domNodes);
+      /* set up boundary condition information */
+      // Vector_h<Index_t> elemBC_h(domElems);
+      // Vector_h<Index_t> surfaceNode_h(domNodes);
 
-    std::vector<Index_t> elemBC_h(domElems);
-    std::vector<Index_t> surfaceNode_h(domNodes);
+      std::vector<Index_t> elemBC_h(domElems);
+      std::vector<Index_t> surfaceNode_h(domNodes);
 
-    for (Index_t i=0; i<domain->numElem; ++i) {
-       elemBC_h[i] = 0 ;
-    }
+      for (Index_t i=0; i<domain->numElem; ++i) {
+	elemBC_h[i] = 0 ;
+      }
 
-    for (Index_t i=0; i<domain->numNode; ++i) {
-       surfaceNode_h[i] = 0 ;
-    }
+      for (Index_t i=0; i<domain->numNode; ++i) {
+	surfaceNode_h[i] = 0 ;
+      }
 
-    for (Index_t i=0; i<domain->numSymmX; ++i) {
-       surfaceNode_h[symmX_h[i]] = 1 ;
-    }
+      for (Index_t i=0; i<domain->numSymmX; ++i) {
+	surfaceNode_h[symmX_h[i]] = 1 ;
+      }
 
-    for (Index_t i=0; i<domain->numSymmY; ++i) {
-       surfaceNode_h[symmY_h[i]] = 1 ;
-    }
+      for (Index_t i=0; i<domain->numSymmY; ++i) {
+	surfaceNode_h[symmY_h[i]] = 1 ;
+      }
 
-    for (Index_t i=0; i<domain->numSymmZ; ++i) {
-       surfaceNode_h[symmZ_h[i]] = 1 ;
-    }
+      for (Index_t i=0; i<domain->numSymmZ; ++i) {
+	surfaceNode_h[symmZ_h[i]] = 1 ;
+      }
 
-    for (Index_t zidx=0; zidx<domain->numElem; ++zidx) {
-       Int_t mask = 0 ;
+      for (Index_t zidx=0; zidx<domain->numElem; ++zidx) {
+	Int_t mask = 0 ;
 
-       for (Index_t ni=0; ni<8; ++ni) {
+	for (Index_t ni=0; ni<8; ++ni) {
           mask |= (surfaceNode_h[nodelist_h[ni*domain->padded_numElem+zidx]] << ni) ;
-       }
+	}
 
-      if ((mask & 0x0f) == 0x0f) elemBC_h[zidx] |= ZETA_M_SYMM ;
-      if ((mask & 0xf0) == 0xf0) elemBC_h[zidx] |= ZETA_P_SYMM ;
-      if ((mask & 0x33) == 0x33) elemBC_h[zidx] |= ETA_M_SYMM ;
-      if ((mask & 0xcc) == 0xcc) elemBC_h[zidx] |= ETA_P_SYMM ;
-      if ((mask & 0x99) == 0x99) elemBC_h[zidx] |= XI_M_SYMM ;
-      if ((mask & 0x66) == 0x66) elemBC_h[zidx] |= XI_P_SYMM ;
-    }
+	if ((mask & 0x0f) == 0x0f) elemBC_h[zidx] |= ZETA_M_SYMM ;
+	if ((mask & 0xf0) == 0xf0) elemBC_h[zidx] |= ZETA_P_SYMM ;
+	if ((mask & 0x33) == 0x33) elemBC_h[zidx] |= ETA_M_SYMM ;
+	if ((mask & 0xcc) == 0xcc) elemBC_h[zidx] |= ETA_P_SYMM ;
+	if ((mask & 0x99) == 0x99) elemBC_h[zidx] |= XI_M_SYMM ;
+	if ((mask & 0x66) == 0x66) elemBC_h[zidx] |= XI_P_SYMM ;
+      }
 
-    for (Index_t zidx=0; zidx<domain->numElem; ++zidx) {
-       if (elemBC_h[zidx] == (XI_M_SYMM | ETA_M_SYMM | ZETA_M_SYMM)) {
+      for (Index_t zidx=0; zidx<domain->numElem; ++zidx) {
+	if (elemBC_h[zidx] == (XI_M_SYMM | ETA_M_SYMM | ZETA_M_SYMM)) {
           domain->octantCorner = zidx ;
           break ;
-       }
-    }
+	}
+      }
 
-    for (Index_t i=0; i<domain->numNode; ++i) {
-       surfaceNode_h[i] = 0 ;
-    }
+      for (Index_t i=0; i<domain->numNode; ++i) {
+	surfaceNode_h[i] = 0 ;
+      }
 
-    for (Index_t i=0; i<numFreeSurf; ++i) {
-       surfaceNode_h[freeSurf_h[i]] = 1 ;
-    }
+      for (Index_t i=0; i<numFreeSurf; ++i) {
+	surfaceNode_h[freeSurf_h[i]] = 1 ;
+      }
 
-    for (Index_t zidx=0; zidx<domain->numElem; ++zidx) {
-       Int_t mask = 0 ;
+      for (Index_t zidx=0; zidx<domain->numElem; ++zidx) {
+	Int_t mask = 0 ;
 
-       for (Index_t ni=0; ni<8; ++ni) {
+	for (Index_t ni=0; ni<8; ++ni) {
           mask |= (surfaceNode_h[nodelist_h[ni*domain->padded_numElem+zidx]] << ni) ;
-       }
+	}
 
-      if ((mask & 0x0f) == 0x0f) elemBC_h[zidx] |= ZETA_M_SYMM ;
-      if ((mask & 0xf0) == 0xf0) elemBC_h[zidx] |= ZETA_P_SYMM ;
-      if ((mask & 0x33) == 0x33) elemBC_h[zidx] |= ETA_M_SYMM ;
-      if ((mask & 0xcc) == 0xcc) elemBC_h[zidx] |= ETA_P_SYMM ;
-      if ((mask & 0x99) == 0x99) elemBC_h[zidx] |= XI_M_SYMM ;
-      if ((mask & 0x66) == 0x66) elemBC_h[zidx] |= XI_P_SYMM ;
+	if ((mask & 0x0f) == 0x0f) elemBC_h[zidx] |= ZETA_M_SYMM ;
+	if ((mask & 0xf0) == 0xf0) elemBC_h[zidx] |= ZETA_P_SYMM ;
+	if ((mask & 0x33) == 0x33) elemBC_h[zidx] |= ETA_M_SYMM ;
+	if ((mask & 0xcc) == 0xcc) elemBC_h[zidx] |= ETA_P_SYMM ;
+	if ((mask & 0x99) == 0x99) elemBC_h[zidx] |= XI_M_SYMM ;
+	if ((mask & 0x66) == 0x66) elemBC_h[zidx] |= XI_P_SYMM ;
+      }
+
+      // domain->elemBC = elemBC_h;
+      domain->elemBC.copyFrom(&(elemBC_h[0]));
+      /* deposit energy */
+      //    domain->e[domain->octantCorner] = Real_t(3.948746e+7) ;
+      Real_t val = Real_t(3.948746e+7) ;
+
+      domain->e.copyFrom(&val, sizeof(Real_t), 0);
     }
-
-    // domain->elemBC = elemBC_h;
-    domain->elemBC.copyFrom(&(elemBC_h[0]));
-    /* deposit energy */
-    //    domain->e[domain->octantCorner] = Real_t(3.948746e+7) ;
-    Real_t val = Real_t(3.948746e+7) ;
-
-    domain->e.copyFrom(&val, sizeof(Real_t), 0);
-  }
 
   /* set up node-centered indexing of elements */
   // Vector_h<Index_t> nodeElemCount_h(domNodes);
   std::vector<Index_t> nodeElemCount_h(domNodes);
 
   for (Index_t i=0; i<domNodes; ++i) {
-     nodeElemCount_h[i] = 0 ;
+    nodeElemCount_h[i] = 0 ;
   }
 
   for (Index_t i=0; i<domElems; ++i) {
-     for (Index_t j=0; j < 8; ++j) {
-        ++(nodeElemCount_h[nodelist_h[j*padded_domElems+i]]);
-     }
+    for (Index_t j=0; j < 8; ++j) {
+      ++(nodeElemCount_h[nodelist_h[j*padded_domElems+i]]);
+    }
   }
 
   // Vector_h<Index_t> nodeElemStart_h(domNodes);
@@ -1352,40 +1534,40 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
 
   nodeElemStart_h[0] = 0;
   for (Index_t i=1; i < domNodes; ++i) {
-     nodeElemStart_h[i] =
-        nodeElemStart_h[i-1] + nodeElemCount_h[i-1] ;
+    nodeElemStart_h[i] =
+      nodeElemStart_h[i-1] + nodeElemCount_h[i-1] ;
   }
 
   // Vector_h<Index_t> nodeElemCornerList_h(nodeElemStart_h[domNodes-1] +
   //                nodeElemCount_h[domNodes-1] );
 
   std::vector<Index_t> nodeElemCornerList_h(nodeElemStart_h[domNodes-1] +
-                 nodeElemCount_h[domNodes-1] );
+					    nodeElemCount_h[domNodes-1] );
 
   for (Index_t i=0; i < domNodes; ++i) {
-     nodeElemCount_h[i] = 0;
+    nodeElemCount_h[i] = 0;
   }
 
   for (Index_t j=0; j < 8; ++j) {
     for (Index_t i=0; i < domElems; ++i) {
-        Index_t m = nodelist_h[padded_domElems*j+i];
-        Index_t k = padded_domElems*j + i ;
-        Index_t offset = nodeElemStart_h[m] +
-                         nodeElemCount_h[m] ;
-        nodeElemCornerList_h[offset] = k;
-        ++(nodeElemCount_h[m]) ;
-     }
+      Index_t m = nodelist_h[padded_domElems*j+i];
+      Index_t k = padded_domElems*j + i ;
+      Index_t offset = nodeElemStart_h[m] +
+	nodeElemCount_h[m] ;
+      nodeElemCornerList_h[offset] = k;
+      ++(nodeElemCount_h[m]) ;
+    }
   }
 
   Index_t clSize = nodeElemStart_h[domNodes-1] +
-                   nodeElemCount_h[domNodes-1] ;
+    nodeElemCount_h[domNodes-1] ;
   for (Index_t i=0; i < clSize; ++i) {
-     Index_t clv = nodeElemCornerList_h[i] ;
-     if ((clv < 0) || (clv > padded_domElems*8)) {
-          fprintf(stderr,
-   "AllocateNodeElemIndexes(): nodeElemCornerList entry out of range!\n");
-          exit(1);
-     }
+    Index_t clv = nodeElemCornerList_h[i] ;
+    if ((clv < 0) || (clv > padded_domElems*8)) {
+      fprintf(stderr,
+	      "AllocateNodeElemIndexes(): nodeElemCornerList entry out of range!\n");
+      exit(1);
+    }
   }
 
   // domain->nodeElemStart = nodeElemStart_h;
@@ -1401,7 +1583,7 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
   // Vector_h<Index_t> matElemlist_h(domElems);
   std::vector<Index_t> matElemlist_h(domElems);
   for (Index_t i=0; i<domElems; ++i) {
-     matElemlist_h[i] = i ;
+    matElemlist_h[i] = i ;
   }
   //  domain->matElemlist = matElemlist_h;
   domain->matElemlist = occaMalloc(domElems*sizeof(Index_t), &(matElemlist_h[0]));
@@ -1467,23 +1649,25 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
   std::vector<Real_t> elemMass_h(domElems);
 
   for (Index_t i=0; i<domElems; ++i) {
-     Real_t x_local[8], y_local[8], z_local[8] ;
-     for( Index_t lnode=0 ; lnode<8 ; ++lnode )
-     {
-       Index_t gnode = nodelist_h[lnode*padded_domElems+i];
-       x_local[lnode] = x_h[gnode];
-       y_local[lnode] = y_h[gnode];
-       z_local[lnode] = z_h[gnode];
-     }
+    Real_t x_local[8], y_local[8], z_local[8] ;
+    for( Index_t lnode=0 ; lnode<8 ; ++lnode )
+      {
+	Index_t gnode = nodelist_h[lnode*padded_domElems+i];
+	x_local[lnode] = x_h[gnode];
+	y_local[lnode] = y_h[gnode];
+	z_local[lnode] = z_h[gnode];
+      }
 
-     // volume calculations
-     Real_t volume = CalcElemVolume(x_local, y_local, z_local );
-     volo_h[i] = volume ;
-     elemMass_h[i] = volume ;
-     for (Index_t j=0; j<8; ++j) {
-        Index_t gnode = nodelist_h[j*padded_domElems+i];
-        nodalMass_h[gnode] += volume / Real_t(8.0) ;
-     }
+    // volume calculations
+    Real_t volume = CalcElemVolume(x_local, y_local, z_local );
+    volo_h[i] = volume ;
+    elemMass_h[i] = volume ;
+    for (Index_t j=0; j<8; ++j) {
+      Index_t gnode = nodelist_h[j*padded_domElems+i];
+      nodalMass_h[gnode] += volume / Real_t(8.0) ;
+
+      assert(nodalMass_h[gnode] > 0.);
+    }
   }
 
   // domain->nodalMass = nodalMass_h;
@@ -1492,6 +1676,31 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
   domain->nodalMass.copyFrom(&(nodalMass_h[0]));
   domain->volo.copyFrom(&(volo_h[0]));
   domain->elemMass.copyFrom(&(elemMass_h[0]));
+
+
+  Index_t padded_numElem = domain->padded_numElem;
+
+  domain->fx_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
+  domain->fy_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
+  domain->fz_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
+
+
+  int allElem = domain->numElem +  /* local elem */
+    2*domain->sizeX*domain->sizeY ; /* plane ghosts */
+
+  domain->vnew = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->dxx = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->dyy = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->dzz = occaMalloc(domain->numElem*sizeof(Real_t));
+
+
+  domain->delx_xi    = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->delx_eta   = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->delx_zeta  = occaMalloc(domain->numElem*sizeof(Real_t));
+  domain->delv_xi    = occaMalloc(allElem*sizeof(Real_t));
+  domain->delv_eta   = occaMalloc(allElem*sizeof(Real_t));
+  domain->delv_zeta  = occaMalloc(allElem*sizeof(Real_t));
+
 
   return domain ;
 }
@@ -1553,65 +1762,70 @@ void TimeIncrement(Domain* domain){
 static inline
 void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 {
-    Index_t numElem = domain->numElem ;
-    Index_t padded_numElem = domain->padded_numElem;
+  Index_t numElem = domain->numElem ;
+  Index_t padded_numElem = domain->padded_numElem;
 
 #ifdef DOUBLE_PRECISION
-    // Vector_d<Real_t>* fx_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
-    // Vector_d<Real_t>* fy_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
-    // Vector_d<Real_t>* fz_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
+  // Vector_d<Real_t>* fx_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
+  // Vector_d<Real_t>* fy_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
+  // Vector_d<Real_t>* fz_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
 
-    // occa::memory* fx_elem = Allocator<occa::memeory >::allocate(padded_numElem*8);
-    // occa::memory* fy_elem = Allocator<occa::memeory >::allocate(padded_numElem*8);
-    // occa::memory* fz_elem = Allocator<occa::memeory >::allocate(padded_numElem*8);
+  // occa::memory* fx_elem = Allocator<occa::memeory >::allocate(padded_numElem*8);
+  // occa::memory* fy_elem = Allocator<occa::memeory >::allocate(padded_numElem*8);
+  // occa::memory* fz_elem = Allocator<occa::memeory >::allocate(padded_numElem*8);
 
-    occa::memory fx_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
-    occa::memory fy_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
-    occa::memory fz_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
+  // occa::memory fx_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
+  // occa::memory fy_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
+  // occa::memory fz_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
 
 #else
-    // thrust::fill(domain->fx.begin(),domain->fx.end(),0.);
-    // thrust::fill(domain->fy.begin(),domain->fy.end(),0.);
-    // thrust::fill(domain->fz.begin(),domain->fz.end(),0.);
+  // thrust::fill(domain->fx.begin(),domain->fx.end(),0.);
+  // thrust::fill(domain->fy.begin(),domain->fy.end(),0.);
+  // thrust::fill(domain->fz.begin(),domain->fz.end(),0.);
 
-    fill(domain->fx, 0.);
-    fill(domain->fy, 0.);
-    fill(domain->fz, 0.);
+  fill(domain->fx, 0.);
+  fill(domain->fy, 0.);
+  fill(domain->fz, 0.);
 #endif
 
-    int num_threads = numElem ;
-    const int block_size = 64;
-    int dimGrid = PAD_DIV(num_threads,block_size);
+  int num_threads = numElem ;
+  const int block_size = 64;
+  int dimGrid = PAD_DIV(num_threads,block_size);
 
-    size_t dims = 1;
-    occa::dim inner(block_size);
-    occa::dim outer(dimGrid);
+  size_t dims = 1;
+  occa::dim inner(block_size);
+  occa::dim outer(dimGrid);
 
-    bool hourg_gt_zero = hgcoef > Real_t(0.0);
-    if (hourg_gt_zero)
+  bool hourg_gt_zero = hgcoef > Real_t(0.0);
+  if (hourg_gt_zero)
     {
-//       CalcVolumeForceForElems_kernel<true> <<<dimGrid,block_size>>>
-//       ( domain->volo.raw(),
-//         domain->v.raw(),
-//         domain->p.raw(),
-//         domain->q.raw(),
-// 	      hgcoef, numElem, padded_numElem,
-//         domain->nodelist.raw(),
-//         domain->ss.raw(),
-//         domain->elemMass.raw(),
-//         domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
-// #ifdef DOUBLE_PRECISION
-//         fx_elem->raw(),
-//         fy_elem->raw(),
-//         fz_elem->raw() ,
-// #else
-//         domain->fx.raw(),
-//         domain->fy.raw(),
-//         domain->fz.raw(),
-// #endif
-//         domain->bad_vol_h,
-//         num_threads
-//       );
+      //       CalcVolumeForceForElems_kernel<true> <<<dimGrid,block_size>>>
+      //       ( domain->volo.raw(),
+      //         domain->v.raw(),
+      //         domain->p.raw(),
+      //         domain->q.raw(),
+      // 	      hgcoef, numElem, padded_numElem,
+      //         domain->nodelist.raw(),
+      //         domain->ss.raw(),
+      //         domain->elemMass.raw(),
+      //         domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
+      // #ifdef DOUBLE_PRECISION
+      //         fx_elem->raw(),
+      //         fy_elem->raw(),
+      //         fz_elem->raw() ,
+      // #else
+      //         domain->fx.raw(),
+      //         domain->fy.raw(),
+      //         domain->fz.raw(),
+      // #endif
+      //         domain->bad_vol_h,
+      //         num_threads
+      //       );
+
+
+      occaCheckDomain(domain);
+
+      occa::memory bad_vol = occaMalloc(sizeof(Index_t), domain->bad_vol_h);
 
       CalcVolumeForceForElems_kernel_true.setWorkingDims(dims, inner, outer);
 
@@ -1624,44 +1838,60 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 	  domain->nodelist,
 	  domain->ss,
 	  domain->elemMass,
+	  domain->x, domain->y, domain->z, domain->xd, domain->yd, domain->zd,
 	  domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
 #ifdef DOUBLE_PRECISION
-	  fx_elem,
-	  fy_elem,
-	  fz_elem,
+	  domain->fx_elem,
+	  domain->fy_elem,
+	  domain->fz_elem,
 #else
 	  domain->fx,
 	  domain->fy,
 	  domain->fz,
 #endif
-	  domain->bad_vol_h,
+	  bad_vol,
 	  num_threads);
-    }
-    else
-    {
-//       CalcVolumeForceForElems_kernel<false> <<<dimGrid,block_size>>>
-//       ( domain->volo.raw(),
-//         domain->v.raw(),
-//         domain->p.raw(),
-//         domain->q.raw(),
-// 	      hgcoef, numElem, padded_numElem,
-//         domain->nodelist.raw(),
-//         domain->ss.raw(),
-//         domain->elemMass.raw(),
-//         domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
-// #ifdef DOUBLE_PRECISION
-//         fx_elem->raw(),
-//         fy_elem->raw(),
-//         fz_elem->raw() ,
-// #else
-//         domain->fx.raw(),
-//         domain->fy.raw(),
-//         domain->fz.raw(),
-// #endif
-//         domain->bad_vol_h,
-//         num_threads
-//       );
 
+      bad_vol.copyTo(domain->bad_vol_h);
+
+      bad_vol.free();
+
+      occaCheckDomain(domain);
+
+    }
+  else
+    {
+      //       CalcVolumeForceForElems_kernel<false> <<<dimGrid,block_size>>>
+      //       ( domain->volo.raw(),
+      //         domain->v.raw(),
+      //         domain->p.raw(),
+      //         domain->q.raw(),
+      // 	      hgcoef, numElem, padded_numElem,
+      //         domain->nodelist.raw(),
+      //         domain->ss.raw(),
+      //         domain->elemMass.raw(),
+      //         domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
+      // #ifdef DOUBLE_PRECISION
+      //         fx_elem->raw(),
+      //         fy_elem->raw(),
+      //         fz_elem->raw() ,
+      // #else
+      //         domain->fx.raw(),
+      //         domain->fy.raw(),
+      //         domain->fz.raw(),
+      // #endif
+      //         domain->bad_vol_h,
+      //         num_threads
+      //       );
+
+
+      occaCheck<Real_t>(domain->fx_elem);
+      occaCheck<Real_t>(domain->fy_elem);
+      occaCheck<Real_t>(domain->fz_elem);
+
+      occaCheckDomain(domain);
+
+      occa::memory bad_vol = occaMalloc(sizeof(Index_t), domain->bad_vol_h);
 
       CalcVolumeForceForElems_kernel_false.setWorkingDims(dims, inner, outer);
       CalcVolumeForceForElems_kernel_false
@@ -1673,102 +1903,116 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 	  domain->nodelist,
 	  domain->ss,
 	  domain->elemMass,
+	  domain->x, domain->y, domain->z, domain->xd, domain->yd, domain->zd,
 	  domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
 #ifdef DOUBLE_PRECISION
-	  fx_elem,
-	  fy_elem,
-	  fz_elem,
+	  domain->fx_elem,
+	  domain->fy_elem,
+	  domain->fz_elem,
 #else
 	  domain->fx,
 	  domain->fy,
 	  domain->fz,
 #endif
-	  domain->bad_vol_h,
+	  bad_vol,
 	  num_threads);
 
+      bad_vol.copyTo(domain->bad_vol_h);
+
+      bad_vol.free();
+
+      occaCheckDomain(domain);
     }
 
 #ifdef DOUBLE_PRECISION
-    num_threads = domain->numNode;
+  num_threads = domain->numNode;
 
-    // Launch boundary nodes first
-    dimGrid= PAD_DIV(num_threads,block_size);
+  // Launch boundary nodes first
+  dimGrid= PAD_DIV(num_threads,block_size);
 
-    // AddNodeForcesFromElems_kernel<<<dimGrid,block_size>>>
-    // ( domain->numNode,
-    //   domain->padded_numNode,
-    //   domain->nodeElemCount.raw(),
-    //   domain->nodeElemStart.raw(),
-    //   domain->nodeElemCornerList.raw(),
-    //   fx_elem->raw(),
-    //   fy_elem->raw(),
-    //   fz_elem->raw(),
-    //   domain->fx.raw(),
-    //   domain->fy.raw(),
-    //   domain->fz.raw(),
-    //   num_threads
-    // );
+  // AddNodeForcesFromElems_kernel<<<dimGrid,block_size>>>
+  // ( domain->numNode,
+  //   domain->padded_numNode,
+  //   domain->nodeElemCount.raw(),
+  //   domain->nodeElemStart.raw(),
+  //   domain->nodeElemCornerList.raw(),
+  //   fx_elem->raw(),
+  //   fy_elem->raw(),
+  //   fz_elem->raw(),
+  //   domain->fx.raw(),
+  //   domain->fy.raw(),
+  //   domain->fz.raw(),
+  //   num_threads
+  // );
 
-    dims = 1;
-    inner.x = block_size;
-    outer.x = dimGrid;
+  occaCheck<Real_t>(domain->fx_elem);
+  occaCheck<Real_t>(domain->fy_elem);
+  occaCheck<Real_t>(domain->fz_elem);
 
-    AddNodeForcesFromElems_kernel.setWorkingDims(dims, inner, outer);
 
-    AddNodeForcesFromElems_kernel
-      ( domain->numNode,
-	domain->padded_numNode,
-	domain->nodeElemCount,
-	domain->nodeElemStart,
-	domain->nodeElemCornerList,
-	fx_elem,
-	fy_elem,
-	fz_elem,
-	domain->fx,
-	domain->fy,
-	domain->fz,
-	num_threads);
+  dims = 1;
+  inner.x = block_size;
+  outer.x = dimGrid;
 
-    //cudaDeviceSynchronize();
-    //cudaCheckError();
+  AddNodeForcesFromElems_kernel.setWorkingDims(dims, inner, outer);
 
-    // Allocator<Vector_d<Real_t> >::free(fx_elem,padded_numElem*8);
-    // Allocator<Vector_d<Real_t> >::free(fy_elem,padded_numElem*8);
-    // Allocator<Vector_d<Real_t> >::free(fz_elem,padded_numElem*8);
+  AddNodeForcesFromElems_kernel
+    ( domain->numNode,
+      domain->padded_numNode,
+      domain->nodeElemCount,
+      domain->nodeElemStart,
+      domain->nodeElemCornerList,
+      domain->fx_elem,
+      domain->fy_elem,
+      domain->fz_elem,
+      domain->fx,
+      domain->fy,
+      domain->fz,
+      num_threads);
 
-    // Allocator<occa::memory >::free(fx_elem, padded_numElem*8);
-    // Allocator<occa::memory >::free(fy_elem, padded_numElem*8);
-    // Allocator<occa::memory >::free(fz_elem, padded_numElem*8);
 
-    fx_elem.free();
-    fy_elem.free();
-    fz_elem.free();
+  occaCheck<Real_t>(domain->fx);
+  occaCheck<Real_t>(domain->fy);
+  //cudaDeviceSynchronize();
+  //cudaCheckError();
+
+  // Allocator<Vector_d<Real_t> >::free(fx_elem,padded_numElem*8);
+  // Allocator<Vector_d<Real_t> >::free(fy_elem,padded_numElem*8);
+  // Allocator<Vector_d<Real_t> >::free(fz_elem,padded_numElem*8);
+
+  // Allocator<occa::memory >::free(fx_elem, padded_numElem*8);
+  // Allocator<occa::memory >::free(fy_elem, padded_numElem*8);
+  // Allocator<occa::memory >::free(fz_elem, padded_numElem*8);
+
+  // fx_elem.free();
+  // fy_elem.free();
+  // fz_elem.free();
 #endif // ifdef DOUBLE_PRECISION
-   return ;
+  return ;
 }
 
 
 static inline
 void CalcVolumeForceForElems(Domain* domain)
 {
-      const Real_t hgcoef = domain->hgcoef ;
+  const Real_t hgcoef = domain->hgcoef ;
 
-      CalcVolumeForceForElems(hgcoef,domain);
+  CalcVolumeForceForElems(hgcoef,domain);
 }
 
 static inline void checkErrors(Domain* domain,int its)
 {
   if (*(domain->bad_vol_h) != -1)
-  {
-    printf("Volume Error in cell %d at iteration %d\n",*(domain->bad_vol_h),its);
-    exit(VolumeError);
-  }
+    {
+      printf("Volume Error in cell %d at iteration %d\n",*(domain->bad_vol_h),its);
+      exit(VolumeError);
+    }
 
   if (*(domain->bad_q_h) != -1)
-  {
-    printf("Q Error in cell %d at iteration %d\n",*(domain->bad_q_h),its);
-    exit(QStopError);
-  }
+    {
+      printf("Q Error in cell %d at iteration %d\n",*(domain->bad_q_h),its);
+      exit(QStopError);
+    }
 }
 
 static inline void CalcForceForNodes(Domain *domain)
@@ -1780,87 +2024,92 @@ static inline void CalcForceForNodes(Domain *domain)
 static inline
 void CalcAccelerationForNodes(Domain *domain)
 {
-    Index_t dimBlock = 128;
-    Index_t dimGrid = PAD_DIV(domain->numNode,dimBlock);
+  Index_t dimBlock = 128;
+  Index_t dimGrid = PAD_DIV(domain->numNode,dimBlock);
 
-    size_t dims = 1;
-    occa::dim inner(dimBlock);
-    occa::dim outer(dimGrid);
+  size_t dims = 1;
+  occa::dim inner(dimBlock);
+  occa::dim outer(dimGrid);
 
-    CalcAccelerationForNodes_kernel.setWorkingDims(dims, inner, outer);
+  CalcAccelerationForNodes_kernel.setWorkingDims(dims, inner, outer);
 
-    // CalcAccelerationForNodes_kernel<<<dimGrid, dimBlock>>>
-    //     (domain->numNode,
-    //      domain->xdd.raw(),domain->ydd.raw(),domain->zdd.raw(),
-    //      domain->fx.raw(),domain->fy.raw(),domain->fz.raw(),
-    //      domain->nodalMass.raw());
+  // CalcAccelerationForNodes_kernel<<<dimGrid, dimBlock>>>
+  //     (domain->numNode,
+  //      domain->xdd.raw(),domain->ydd.raw(),domain->zdd.raw(),
+  //      domain->fx.raw(),domain->fy.raw(),domain->fz.raw(),
+  //      domain->nodalMass.raw());
 
-    CalcAccelerationForNodes_kernel
-      (domain->numNode,
-       domain->xdd,
-       domain->ydd,
-       domain->zdd,
-       domain->fx,
-       domain->fy,
-       domain->fz,
-       domain->nodalMass);
+  occaCheck<Real_t>(domain->fx);
+  occaCheck<Real_t>(domain->fy);
+  occaCheck<Real_t>(domain->fz);
+  occaCheck<Real_t>(domain->nodalMass);
 
-    //cudaDeviceSynchronize();
-    //cudaCheckError();
+  CalcAccelerationForNodes_kernel
+    (domain->numNode,
+     domain->xdd,
+     domain->ydd,
+     domain->zdd,
+     domain->fx,
+     domain->fy,
+     domain->fz,
+     domain->nodalMass);
+
+  //cudaDeviceSynchronize();
+  //cudaCheckError();
 }
 
 static inline
 void ApplyAccelerationBoundaryConditionsForNodes(Domain *domain)
 {
 
-    Index_t dimBlock = 128;
+  Index_t dimBlock = 128;
 
-    Index_t dimGrid = PAD_DIV(domain->numSymmX,dimBlock);
+  Index_t dimGrid = PAD_DIV(domain->numSymmX,dimBlock);
 
-    size_t dims = 1;
-    occa::dim inner(dimBlock);
-    occa::dim outer(dimGrid);
-
-
-    // ApplyAccelerationBoundaryConditionsForNodes_kernel<<<dimGrid, dimBlock>>>
-    //     (domain->numSymmX,
-    //      domain->xdd.raw(),
-    //      domain->symmX.raw());
-
-    ApplyAccelerationBoundaryConditionsForNodes_kernel.setWorkingDims(dims, inner, outer);
-
-    ApplyAccelerationBoundaryConditionsForNodes_kernel
-      (domain->numSymmX,
-       domain->xdd,
-       domain->symmX);
+  size_t dims = 1;
+  occa::dim inner(dimBlock);
+  occa::dim outer(dimGrid);
 
 
-    dimGrid = PAD_DIV(domain->numSymmY,dimBlock);
-    outer.x = dimGrid;
+  // ApplyAccelerationBoundaryConditionsForNodes_kernel<<<dimGrid, dimBlock>>>
+  //     (domain->numSymmX,
+  //      domain->xdd.raw(),
+  //      domain->symmX.raw());
 
-    // ApplyAccelerationBoundaryConditionsForNodes_kernel<<<dimGrid, dimBlock>>>
-    //     (domain->numSymmY,
-    //      domain->ydd.raw(),
-    //      domain->symmY.raw());
+  ApplyAccelerationBoundaryConditionsForNodes_kernel.setWorkingDims(dims, inner, outer);
 
-    ApplyAccelerationBoundaryConditionsForNodes_kernel.setWorkingDims(dims, inner, outer);
-    ApplyAccelerationBoundaryConditionsForNodes_kernel
-        (domain->numSymmY,
-         domain->ydd,
-         domain->symmY);
+  ApplyAccelerationBoundaryConditionsForNodes_kernel
+    (domain->numSymmX,
+     domain->xdd,
+     domain->symmX);
 
-    dimGrid = PAD_DIV(domain->numSymmZ,dimBlock);
-    outer.x = dimGrid;
-    // ApplyAccelerationBoundaryConditionsForNodes_kernel<<<dimGrid, dimBlock>>>
-    //     (domain->numSymmZ,
-    //      domain->zdd.raw(),
-    //      domain->symmZ.raw());
 
-    ApplyAccelerationBoundaryConditionsForNodes_kernel.setWorkingDims(dims, inner, outer);
-    ApplyAccelerationBoundaryConditionsForNodes_kernel
-      (domain->numSymmZ,
-       domain->zdd,
-       domain->symmZ);
+  dimGrid = PAD_DIV(domain->numSymmY,dimBlock);
+  outer.x = dimGrid;
+
+  // ApplyAccelerationBoundaryConditionsForNodes_kernel<<<dimGrid, dimBlock>>>
+  //     (domain->numSymmY,
+  //      domain->ydd.raw(),
+  //      domain->symmY.raw());
+
+  ApplyAccelerationBoundaryConditionsForNodes_kernel.setWorkingDims(dims, inner, outer);
+  ApplyAccelerationBoundaryConditionsForNodes_kernel
+    (domain->numSymmY,
+     domain->ydd,
+     domain->symmY);
+
+  dimGrid = PAD_DIV(domain->numSymmZ,dimBlock);
+  outer.x = dimGrid;
+  // ApplyAccelerationBoundaryConditionsForNodes_kernel<<<dimGrid, dimBlock>>>
+  //     (domain->numSymmZ,
+  //      domain->zdd.raw(),
+  //      domain->symmZ.raw());
+
+  ApplyAccelerationBoundaryConditionsForNodes_kernel.setWorkingDims(dims, inner, outer);
+  ApplyAccelerationBoundaryConditionsForNodes_kernel
+    (domain->numSymmZ,
+     domain->zdd,
+     domain->symmZ);
 }
 
 
@@ -1868,36 +2117,36 @@ void ApplyAccelerationBoundaryConditionsForNodes(Domain *domain)
 static inline
 void CalcPositionAndVelocityForNodes(const Real_t u_cut, Domain* domain)
 {
-    Index_t dimBlock = 128;
-    Index_t dimGrid = PAD_DIV(domain->numNode,dimBlock);
+  Index_t dimBlock = 128;
+  Index_t dimGrid = PAD_DIV(domain->numNode,dimBlock);
 
-    size_t dims = 1;
-    occa::dim inner(dimBlock);
-    occa::dim outer(dimGrid);
+  size_t dims = 1;
+  occa::dim inner(dimBlock);
+  occa::dim outer(dimGrid);
 
-    // CalcPositionAndVelocityForNodes_kernel<<<dimGrid, dimBlock>>>
-    //     (domain->numNode,domain->deltatime_h,u_cut,
-    //      domain->x.raw(),domain->y.raw(),domain->z.raw(),
-    //      domain->xd.raw(),domain->yd.raw(),domain->zd.raw(),
-    //      domain->xdd.raw(),domain->ydd.raw(),domain->zdd.raw());
+  // CalcPositionAndVelocityForNodes_kernel<<<dimGrid, dimBlock>>>
+  //     (domain->numNode,domain->deltatime_h,u_cut,
+  //      domain->x.raw(),domain->y.raw(),domain->z.raw(),
+  //      domain->xd.raw(),domain->yd.raw(),domain->zd.raw(),
+  //      domain->xdd.raw(),domain->ydd.raw(),domain->zdd.raw());
 
-    CalcPositionAndVelocityForNodes_kernel.setWorkingDims(dims, inner, outer);
-    CalcPositionAndVelocityForNodes_kernel
-      (domain->numNode,
-       domain->deltatime_h,
-       u_cut,
-       domain->x,
-       domain->y,
-       domain->z,
-       domain->xd,
-       domain->yd,
-       domain->zd,
-       domain->xdd,
-       domain->ydd,
-       domain->zdd);
+  CalcPositionAndVelocityForNodes_kernel.setWorkingDims(dims, inner, outer);
+  CalcPositionAndVelocityForNodes_kernel
+    (domain->numNode,
+     domain->deltatime_h,
+     u_cut,
+     domain->x,
+     domain->y,
+     domain->z,
+     domain->xd,
+     domain->yd,
+     domain->zd,
+     domain->xdd,
+     domain->ydd,
+     domain->zdd);
 
-    //cudaDeviceSynchronize();
-    //cudaCheckError();
+  //cudaDeviceSynchronize();
+  //cudaCheckError();
 }
 
 static inline
@@ -1934,49 +2183,55 @@ void LagrangeNodal(Domain *domain)
 static inline
 void CalcKinematicsAndMonotonicQGradient(Domain *domain)
 {
-    Index_t numElem = domain->numElem ;
-    Index_t padded_numElem = domain->padded_numElem;
+  Index_t numElem = domain->numElem ;
+  Index_t padded_numElem = domain->padded_numElem;
 
-    int num_threads = numElem;
+  int num_threads = numElem;
 
-    const int block_size = 64;
-    int dimGrid = PAD_DIV(num_threads,block_size);
+  const int block_size = 64;
+  int dimGrid = PAD_DIV(num_threads,block_size);
 
-    size_t dims = 1;
-    occa::dim inner(block_size);
-    occa::dim outer(dimGrid);
+  size_t dims = 1;
+  occa::dim inner(block_size);
+  occa::dim outer(dimGrid);
 
-    // CalcKinematicsAndMonotonicQGradient_kernel<<<dimGrid,block_size>>>
-    // (  numElem,padded_numElem, domain->deltatime_h,
-    //    domain->nodelist.raw(),
-    //    domain->volo.raw(),
-    //    domain->v.raw(),
-    //    domain->tex_x,domain->tex_y,domain->tex_z,domain->tex_xd,domain->tex_yd,domain->tex_zd,
-    //    domain->vnew->raw(),
-    //    domain->delv.raw(),
-    //    domain->arealg.raw(),
-    //    domain->dxx->raw(),
-    //    domain->dyy->raw(),
-    //    domain->dzz->raw(),
-    //    domain->vdov.raw(),
-    //    domain->delx_zeta->raw(),
-    //    domain->delv_zeta->raw(),
-    //    domain->delx_xi->raw(),
-    //    domain->delv_xi->raw(),
-    //    domain->delx_eta->raw(),
-    //    domain->delv_eta->raw(),
-    //    domain->bad_vol_h,
-    //    num_threads
-    // );
+  // CalcKinematicsAndMonotonicQGradient_kernel<<<dimGrid,block_size>>>
+  // (  numElem,padded_numElem, domain->deltatime_h,
+  //    domain->nodelist.raw(),
+  //    domain->volo.raw(),
+  //    domain->v.raw(),
+  //    domain->tex_x,domain->tex_y,domain->tex_z,domain->tex_xd,domain->tex_yd,domain->tex_zd,
+  //    domain->vnew->raw(),
+  //    domain->delv.raw(),
+  //    domain->arealg.raw(),
+  //    domain->dxx->raw(),
+  //    domain->dyy->raw(),
+  //    domain->dzz->raw(),
+  //    domain->vdov.raw(),
+  //    domain->delx_zeta->raw(),
+  //    domain->delv_zeta->raw(),
+  //    domain->delx_xi->raw(),
+  //    domain->delv_xi->raw(),
+  //    domain->delx_eta->raw(),
+  //    domain->delv_eta->raw(),
+  //    domain->bad_vol_h,
+  //    num_threads
+  // );
 
 
-    CalcKinematicsAndMonotonicQGradient_kernel.setWorkingDims(dims, inner, outer);
+  occaCheckDomain(domain);
 
-    CalcKinematicsAndMonotonicQGradient_kernel
+  occa::memory bad_vol = occaMalloc(sizeof(Index_t),
+				    domain->bad_vol_h);
+
+  CalcKinematicsAndMonotonicQGradient_kernel.setWorkingDims(dims, inner, outer);
+
+  CalcKinematicsAndMonotonicQGradient_kernel
     (  numElem,padded_numElem, domain->deltatime_h,
        domain->nodelist,
        domain->volo,
        domain->v,
+       domain->x, domain->y, domain->z, domain->xd, domain->yd, domain->zd,
        domain->tex_x,domain->tex_y,domain->tex_z,domain->tex_xd,domain->tex_yd,domain->tex_zd,
        domain->vnew,
        domain->delv,
@@ -1991,50 +2246,68 @@ void CalcKinematicsAndMonotonicQGradient(Domain *domain)
        domain->delv_xi,
        domain->delx_eta,
        domain->delv_eta,
-       domain->bad_vol_h,
+       bad_vol,
        num_threads);
 
-    //cudaDeviceSynchronize();
-    //cudaCheckError();
+  bad_vol.copyTo(domain->bad_vol_h);
+
+  occaCheck<Real_t>(domain->vnew);
+  occaCheck<Real_t>(domain->delv);
+  occaCheck<Real_t>(domain->arealg);
+  occaCheck<Real_t>(domain->dxx);
+  occaCheck<Real_t>(domain->dyy);
+  occaCheck<Real_t>(domain->dzz);
+  occaCheck<Real_t>(domain->vdov);
+  occaCheck<Real_t>(domain->delx_zeta);
+  occaCheck<Real_t>(domain->delv_zeta);
+  occaCheck<Real_t>(domain->delx_xi);
+  occaCheck<Real_t>(domain->delv_xi);
+  occaCheck<Real_t>(domain->delx_eta);
+  occaCheck<Real_t>(domain->delv_eta);
+
+  //cudaDeviceSynchronize();
+  //cudaCheckError();
 }
 
 static inline
 void CalcMonotonicQRegionForElems(Domain *domain)
 {
 
-    const Real_t ptiny        = Real_t(1.e-36) ;
-    Real_t monoq_max_slope    = domain->monoq_max_slope ;
-    Real_t monoq_limiter_mult = domain->monoq_limiter_mult ;
+  const Real_t ptiny        = Real_t(1.e-36) ;
+  Real_t monoq_max_slope    = domain->monoq_max_slope ;
+  Real_t monoq_limiter_mult = domain->monoq_limiter_mult ;
 
-    Real_t qlc_monoq = domain->qlc_monoq;
-    Real_t qqc_monoq = domain->qqc_monoq;
-    Index_t elength = domain->numElem;
+  Real_t qlc_monoq = domain->qlc_monoq;
+  Real_t qqc_monoq = domain->qqc_monoq;
+  Index_t elength = domain->numElem;
 
-    Index_t dimBlock= 128;
-    Index_t dimGrid = PAD_DIV(elength,dimBlock);
+  Index_t dimBlock= 128;
+  Index_t dimGrid = PAD_DIV(elength,dimBlock);
 
-    size_t dims = 1;
-    occa::dim inner(dimBlock);
-    occa::dim outer(dimGrid);
+  size_t dims = 1;
+  occa::dim inner(dimBlock);
+  occa::dim outer(dimGrid);
 
-    // CalcMonotonicQRegionForElems_kernel<<<dimGrid,dimBlock>>>
-    // ( qlc_monoq,qqc_monoq,monoq_limiter_mult,monoq_max_slope,ptiny,elength,
-    //   domain->matElemlist.raw(),domain->elemBC.raw(),
-    //   domain->lxim.raw(),domain->lxip.raw(),
-    //   domain->letam.raw(),domain->letap.raw(),
-    //   domain->lzetam.raw(),domain->lzetap.raw(),
-    //   domain->delv_xi->raw(),domain->delv_eta->raw(),domain->delv_zeta->raw(),
-    //   domain->delx_xi->raw(),domain->delx_eta->raw(),domain->delx_zeta->raw(),
-    //   domain->vdov.raw(),domain->elemMass.raw(),domain->volo.raw(),domain->vnew->raw(),
-    //   domain->qq.raw(),domain->ql.raw(),
-    //   domain->q.raw(),
-    //   domain->qstop,
-    //   domain->bad_q_h
-    // );
+  // CalcMonotonicQRegionForElems_kernel<<<dimGrid,dimBlock>>>
+  // ( qlc_monoq,qqc_monoq,monoq_limiter_mult,monoq_max_slope,ptiny,elength,
+  //   domain->matElemlist.raw(),domain->elemBC.raw(),
+  //   domain->lxim.raw(),domain->lxip.raw(),
+  //   domain->letam.raw(),domain->letap.raw(),
+  //   domain->lzetam.raw(),domain->lzetap.raw(),
+  //   domain->delv_xi->raw(),domain->delv_eta->raw(),domain->delv_zeta->raw(),
+  //   domain->delx_xi->raw(),domain->delx_eta->raw(),domain->delx_zeta->raw(),
+  //   domain->vdov.raw(),domain->elemMass.raw(),domain->volo.raw(),domain->vnew->raw(),
+  //   domain->qq.raw(),domain->ql.raw(),
+  //   domain->q.raw(),
+  //   domain->qstop,
+  //   domain->bad_q_h
+  // );
 
-    CalcMonotonicQRegionForElems_kernel.setWorkingDims(dims, inner, outer);
+  occa::memory bad_q = occaMalloc(sizeof(Index_t), domain->bad_q_h);
 
-    CalcMonotonicQRegionForElems_kernel
+  CalcMonotonicQRegionForElems_kernel.setWorkingDims(dims, inner, outer);
+
+  CalcMonotonicQRegionForElems_kernel
     ( qlc_monoq,qqc_monoq,
       monoq_limiter_mult,
       monoq_max_slope,
@@ -2062,10 +2335,14 @@ void CalcMonotonicQRegionForElems(Domain *domain)
       domain->ql,
       domain->q,
       domain->qstop,
-      domain->bad_q_h);
+      bad_q);
 
-    //cudaDeviceSynchronize();
-    //cudaCheckError();
+  bad_q.copyTo(domain->bad_q_h);
+
+  bad_q.free();
+
+  //cudaDeviceSynchronize();
+  //cudaCheckError();
 }
 
 
@@ -2108,34 +2385,38 @@ void ApplyMaterialPropertiesAndUpdateVolume(Domain *domain)
     //      domain->bad_vol_h
     //      );
 
+    occa::memory bad_vol = occaMalloc(sizeof(Index_t), domain->bad_vol_h);
+
     ApplyMaterialPropertiesAndUpdateVolume_kernel.setWorkingDims(dims, inner, outer);
 
     ApplyMaterialPropertiesAndUpdateVolume_kernel
-        (length,
-         domain->refdens,
-         domain->e_cut,
-         domain->emin,
-         domain->ql,
-         domain->qq,
-         domain->vnew,
-         domain->v,
-         domain->pmin,
-         domain->p_cut,
-         domain->q_cut,
-         domain->eosvmin,
-         domain->eosvmax,
-         domain->matElemlist,
-         domain->e,
-         domain->delv,
-         domain->p,
-         domain->q,
-         domain->ss4o3,
-         domain->ss,
-         domain->v_cut,
-         domain->bad_vol_h);
+      (length,
+       domain->refdens,
+       domain->e_cut,
+       domain->emin,
+       domain->ql,
+       domain->qq,
+       domain->vnew,
+       domain->v,
+       domain->pmin,
+       domain->p_cut,
+       domain->q_cut,
+       domain->eosvmin,
+       domain->eosvmax,
+       domain->matElemlist,
+       domain->e,
+       domain->delv,
+       domain->p,
+       domain->q,
+       domain->ss4o3,
+       domain->ss,
+       domain->v_cut,
+       bad_vol);
 
+    bad_vol.copyTo(domain->bad_vol_h);
+    bad_vol.free();
 
-    occaCheck<Real_t>(domain->e);
+    //    occaCheck<Real_t>(domain->e);
 
     //cudaDeviceSynchronize();
     //cudaCheckError();
@@ -2149,22 +2430,17 @@ void LagrangeElements(Domain *domain)
 {
 
   int allElem = domain->numElem +  /* local elem */
-                2*domain->sizeX*domain->sizeY ; /* plane ghosts */
+    2*domain->sizeX*domain->sizeY ; /* plane ghosts */
 
   // domain->vnew = Allocator< Vector_d<Real_t> >::allocate(domain->numElem);
   // domain->dxx  = Allocator< Vector_d<Real_t> >::allocate(domain->numElem);
   // domain->dyy  = Allocator< Vector_d<Real_t> >::allocate(domain->numElem);
   // domain->dzz  = Allocator< Vector_d<Real_t> >::allocate(domain->numElem);
 
-  // domain->vnew = Allocator< occa::memory >::allocate(domain->numElem);
-  // domain->dxx  = Allocator< occa::memory >::allocate(domain->numElem);
-  // domain->dyy  = Allocator< occa::memory >::allocate(domain->numElem);
-  // domain->dzz  = Allocator< occa::memory >::allocate(domain->numElem);
-
-  domain->vnew = occaMalloc(domain->numElem*sizeof(Real_t));
-  domain->dxx = occaMalloc(domain->numElem*sizeof(Real_t));
-  domain->dyy = occaMalloc(domain->numElem*sizeof(Real_t));
-  domain->dzz = occaMalloc(domain->numElem*sizeof(Real_t));
+  // domain->vnew = occaMalloc(domain->numElem*sizeof(Real_t));
+  // domain->dxx = occaMalloc(domain->numElem*sizeof(Real_t));
+  // domain->dyy = occaMalloc(domain->numElem*sizeof(Real_t));
+  // domain->dzz = occaMalloc(domain->numElem*sizeof(Real_t));
 
   // domain->delx_xi    = Allocator< Vector_d<Real_t> >::allocate(domain->numElem);
   // domain->delx_eta   = Allocator< Vector_d<Real_t> >::allocate(domain->numElem);
@@ -2174,20 +2450,12 @@ void LagrangeElements(Domain *domain)
   // domain->delv_zeta  = Allocator< Vector_d<Real_t> >::allocate(allElem);
 
 
-  // domain->delx_xi    = Allocator< occa::memory >::allocate(domain->numElem);
-  // domain->delx_eta   = Allocator< occa::memory >::allocate(domain->numElem);
-  // domain->delx_zeta  = Allocator< occa::memory >::allocate(domain->numElem);
-  // domain->delv_xi    = Allocator< occa::memory >::allocate(allElem);
-  // domain->delv_eta   = Allocator< occa::memory >::allocate(allElem);
-  // domain->delv_zeta  = Allocator< occa::memory >::allocate(allElem);
-
-
-  domain->delx_xi    = occaMalloc(domain->numElem*sizeof(Real_t));
-  domain->delx_eta   = occaMalloc(domain->numElem*sizeof(Real_t));
-  domain->delx_zeta  = occaMalloc(domain->numElem*sizeof(Real_t));
-  domain->delv_xi    = occaMalloc(allElem*sizeof(Real_t));
-  domain->delv_eta   = occaMalloc(allElem*sizeof(Real_t));
-  domain->delv_zeta  = occaMalloc(allElem*sizeof(Real_t));
+  // domain->delx_xi    = occaMalloc(domain->numElem*sizeof(Real_t));
+  // domain->delx_eta   = occaMalloc(domain->numElem*sizeof(Real_t));
+  // domain->delx_zeta  = occaMalloc(domain->numElem*sizeof(Real_t));
+  // domain->delv_xi    = occaMalloc(allElem*sizeof(Real_t));
+  // domain->delv_eta   = occaMalloc(allElem*sizeof(Real_t));
+  // domain->delv_zeta  = occaMalloc(allElem*sizeof(Real_t));
 
   /*********************************************/
   /*  Calc Kinematics and Monotic Q Gradient   */
@@ -2203,9 +2471,9 @@ void LagrangeElements(Domain *domain)
   // Allocator< occa::memory >::free(domain->dxx,domain->numElem);
   // Allocator< occa::memory >::free(domain->dyy,domain->numElem);
   // Allocator< occa::memory >::free(domain->dzz,domain->numElem);
-  domain->dxx.free();
-  domain->dyy.free();
-  domain->dzz.free();
+  // domain->dxx.free();
+  // domain->dyy.free();
+  // domain->dzz.free();
 
 
   /***********************************************************/
@@ -2214,8 +2482,8 @@ void LagrangeElements(Domain *domain)
   /***********************************************************/
 
   /**********************************
-  *    Calc Monotic Q Region
-  **********************************/
+   *    Calc Monotic Q Region
+   **********************************/
   occaCheckDomain(domain);
   CalcMonotonicQRegionForElems(domain);
   occaCheckDomain(domain);
@@ -2226,26 +2494,26 @@ void LagrangeElements(Domain *domain)
   // Allocator<Vector_d<Real_t> >::free(domain->delv_eta,allElem);
   // Allocator<Vector_d<Real_t> >::free(domain->delv_zeta,allElem);
 
-   // Allocator<occa::memory >::free(domain->delx_xi,domain->numElem);
-   // Allocator<occa::memory >::free(domain->delx_eta,domain->numElem);
-   // Allocator<occa::memory >::free(domain->delx_zeta,domain->numElem);
-   // Allocator<occa::memory >::free(domain->delv_xi,allElem);
-   // Allocator<occa::memory >::free(domain->delv_eta,allElem);
-   // Allocator<occa::memory >::free(domain->delv_zeta,allElem);
+  // Allocator<occa::memory >::free(domain->delx_xi,domain->numElem);
+  // Allocator<occa::memory >::free(domain->delx_eta,domain->numElem);
+  // Allocator<occa::memory >::free(domain->delx_zeta,domain->numElem);
+  // Allocator<occa::memory >::free(domain->delv_xi,allElem);
+  // Allocator<occa::memory >::free(domain->delv_eta,allElem);
+  // Allocator<occa::memory >::free(domain->delv_zeta,allElem);
 
-   domain->delx_xi.free();
-   domain->delx_eta.free();
-   domain->delx_zeta.free();
-   domain->delv_xi.free();
-   domain->delv_eta.free();
-   domain->delv_zeta.free();
+  // domain->delx_xi.free();
+  // domain->delx_eta.free();
+  // domain->delx_zeta.free();
+  // domain->delv_xi.free();
+  // domain->delv_eta.free();
+  // domain->delv_zeta.free();
 
   occaCheckDomain(domain);
   ApplyMaterialPropertiesAndUpdateVolume(domain) ;
   occaCheckDomain(domain);
   //  Allocator<Vector_d<Real_t> >::free(domain->vnew,domain->numElem);
   // Allocator<occa::memory >::free(domain->vnew,domain->numElem);
-  domain->vnew.free();
+  // domain->vnew.free();
 }
 
 
@@ -2318,6 +2586,10 @@ void CalcTimeConstraintsForElems(Domain* domain){
 		    dtcourant_d,
 		    dthydro_d, dimGrid);
 
+
+  dtcourant_d.copyTo(domain->dtcourant_h);
+  dthydro_d.copyTo(domain->dthydro_h);
+
   occaCheckDomain(domain);
   // cudaEventRecord(domain->time_constraint_computed,domain->streams[1]);
 
@@ -2340,15 +2612,15 @@ static inline
 void LagrangeLeapFrog(Domain* domain)
 {
 
-   /* calculate nodal forces, accelerations, velocities, positions, with
-    * applied boundary conditions and slide surface considerations */
-   LagrangeNodal(domain);
+  /* calculate nodal forces, accelerations, velocities, positions, with
+   * applied boundary conditions and slide surface considerations */
+  LagrangeNodal(domain);
 
-   /* calculate element quantities (i.e. velocity gradient & q), and update
-    * material states */
-   LagrangeElements(domain);
+  /* calculate element quantities (i.e. velocity gradient & q), and update
+   * material states */
+  LagrangeElements(domain);
 
-   CalcTimeConstraintsForElems(domain);
+  CalcTimeConstraintsForElems(domain);
 
 }
 
@@ -2370,7 +2642,7 @@ extern "C" {
 #endif
 #include "silo.h"
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #define MAX_LEN_SAMI_HEADER  10
@@ -2385,105 +2657,105 @@ extern "C" {
 
 void DumpSAMI(Domain *domain, char *name)
 {
-   DBfile *fp ;
-   int headerLen = MAX_LEN_SAMI_HEADER ;
-   int headerInfo[MAX_LEN_SAMI_HEADER];
-   char varName[] = "brick_nd0";
-   char coordName[] = "x";
-   int version = 121 ;
-   int numElem = int(domain->numElem) ;
-   int numNode = int(domain->numNode) ;
-   int count ;
+  DBfile *fp ;
+  int headerLen = MAX_LEN_SAMI_HEADER ;
+  int headerInfo[MAX_LEN_SAMI_HEADER];
+  char varName[] = "brick_nd0";
+  char coordName[] = "x";
+  int version = 121 ;
+  int numElem = int(domain->numElem) ;
+  int numNode = int(domain->numNode) ;
+  int count ;
 
-   int *materialID ;
-   int *nodeConnect ;
-   double *nodeCoord ;
+  int *materialID ;
+  int *nodeConnect ;
+  double *nodeCoord ;
 
-   if ((fp = DBCreate(name, DB_CLOBBER, DB_LOCAL,
-                        NULL, DB_PDB)) == NULL)
-   {
+  if ((fp = DBCreate(name, DB_CLOBBER, DB_LOCAL,
+		     NULL, DB_PDB)) == NULL)
+    {
       printf("Couldn't create file %s\n", name) ;
       exit(1);
-   }
+    }
 
-   for (int i=0; i<MAX_LEN_SAMI_HEADER; ++i) {
-      headerInfo[i] = 0 ;
-   }
-   headerInfo[SAMI_HDR_NUMBRICK]    = numElem ;
-   headerInfo[SAMI_HDR_NUMNODES]    = numNode ;
-   headerInfo[SAMI_HDR_NUMMATERIAL] = 1 ;
-   headerInfo[SAMI_HDR_INDEX_START] = 1 ;
-   headerInfo[SAMI_HDR_MESHDIM]     = 3 ;
+  for (int i=0; i<MAX_LEN_SAMI_HEADER; ++i) {
+    headerInfo[i] = 0 ;
+  }
+  headerInfo[SAMI_HDR_NUMBRICK]    = numElem ;
+  headerInfo[SAMI_HDR_NUMNODES]    = numNode ;
+  headerInfo[SAMI_HDR_NUMMATERIAL] = 1 ;
+  headerInfo[SAMI_HDR_INDEX_START] = 1 ;
+  headerInfo[SAMI_HDR_MESHDIM]     = 3 ;
 
-   DBWrite(fp, "mesh_data", headerInfo, &headerLen, 1, DB_INT) ;
+  DBWrite(fp, "mesh_data", headerInfo, &headerLen, 1, DB_INT) ;
 
-   count = 1 ;
-   DBWrite(fp, "version", &version, &count, 1, DB_INT) ;
+  count = 1 ;
+  DBWrite(fp, "version", &version, &count, 1, DB_INT) ;
 
-   nodeConnect = new int[numElem] ;
+  nodeConnect = new int[numElem] ;
 
-   // Vector_h<Index_t> nodelist_h = domain->nodelist;
-   std::vector<Index_t> nodelist_h = domain->nodelist;
+  // Vector_h<Index_t> nodelist_h = domain->nodelist;
+  std::vector<Index_t> nodelist_h = domain->nodelist;
 
-   for (Index_t i=0; i<8; ++i)
-   {
+  for (Index_t i=0; i<8; ++i)
+    {
       for (Index_t j=0; j<numElem; ++j) {
-         nodeConnect[j] = int(nodelist_h[i*domain->padded_numElem + j]) + 1 ;
+	nodeConnect[j] = int(nodelist_h[i*domain->padded_numElem + j]) + 1 ;
       }
       varName[8] = '0' + i;
       DBWrite(fp, varName, nodeConnect, &numElem, 1, DB_INT) ;
-   }
+    }
 
-   delete [] nodeConnect ;
+  delete [] nodeConnect ;
 
-   nodeCoord = new double[numNode] ;
+  nodeCoord = new double[numNode] ;
 
-   // Vector_h<Real_t> x_h = domain->x;
-   // Vector_h<Real_t> y_h = domain->y;
-   // Vector_h<Real_t> z_h = domain->z;
+  // Vector_h<Real_t> x_h = domain->x;
+  // Vector_h<Real_t> y_h = domain->y;
+  // Vector_h<Real_t> z_h = domain->z;
 
-   std::vector<Real_t> x_h = domain->x;
-   std::vector<Real_t> y_h = domain->y;
-   std::vector<Real_t> z_h = domain->z;
+  std::vector<Real_t> x_h = domain->x;
+  std::vector<Real_t> y_h = domain->y;
+  std::vector<Real_t> z_h = domain->z;
 
-   for (Index_t i=0; i<3; ++i)
-   {
+  for (Index_t i=0; i<3; ++i)
+    {
       for (Index_t j=0; j<numNode; ++j) {
-         Real_t coordVal ;
-         switch(i) {
-            case 0: coordVal = double(x_h[j]) ; break ;
-            case 1: coordVal = double(y_h[j]) ; break ;
-            case 2: coordVal = double(z_h[j]) ; break ;
-         }
-         nodeCoord[j] = coordVal ;
+	Real_t coordVal ;
+	switch(i) {
+	case 0: coordVal = double(x_h[j]) ; break ;
+	case 1: coordVal = double(y_h[j]) ; break ;
+	case 2: coordVal = double(z_h[j]) ; break ;
+	}
+	nodeCoord[j] = coordVal ;
       }
       coordName[0] = 'x' + i ;
       DBWrite(fp, coordName, nodeCoord, &numNode, 1, DB_DOUBLE) ;
-   }
+    }
 
-   delete [] nodeCoord ;
+  delete [] nodeCoord ;
 
-   materialID = new int[numElem] ;
+  materialID = new int[numElem] ;
 
-   for (Index_t i=0; i<numElem; ++i)
-      materialID[i] = 1 ;
+  for (Index_t i=0; i<numElem; ++i)
+    materialID[i] = 1 ;
 
-   DBWrite(fp, "brick_material", materialID, &numElem, 1, DB_INT) ;
+  DBWrite(fp, "brick_material", materialID, &numElem, 1, DB_INT) ;
 
-   delete [] materialID ;
+  delete [] materialID ;
 
-   DBClose(fp);
+  DBClose(fp);
 }
 #endif
 
 #ifdef SAMI
 void DumpDomain(Domain *domain)
 {
-   char meshName[64] ;
-   printf("Dumping SAMI file\n");
-   sprintf(meshName, "sedov_%d.sami", int(domain->cycle)) ;
+  char meshName[64] ;
+  printf("Dumping SAMI file\n");
+  sprintf(meshName, "sedov_%d.sami", int(domain->cycle)) ;
 
-   DumpSAMI(domain, meshName) ;
+  DumpSAMI(domain, meshName) ;
 
 }
 #endif
@@ -2511,10 +2783,10 @@ void write_solution(Domain* locDom)
   FILE *fout = fopen(filename.str().c_str(),"wb");
 
   for (Index_t i=0; i<locDom->numNode; i++) {
-      fprintf(fout,"%10d\n",i);
-      fprintf(fout,"%.10f\n",x_h[i]);
-      fprintf(fout,"%.10f\n",y_h[i]);
-      fprintf(fout,"%.10f\n",z_h[i]);
+    fprintf(fout,"%10d\n",i);
+    fprintf(fout,"%.10f\n",x_h[i]);
+    fprintf(fout,"%.10f\n",y_h[i]);
+    fprintf(fout,"%.10f\n",z_h[i]);
   }
   fclose(fout);
 }
@@ -2527,10 +2799,10 @@ int main(int argc, char *argv[])
   }
 
   if (  strcmp(argv[1],"-u") != 0 && strcmp(argv[1],"-s") != 0 )
-  {
-    printUsage(argv);
-    exit( LFileError ) ;
-  }
+    {
+      printUsage(argv);
+      exit( LFileError ) ;
+    }
 
   bool structured = ( strcmp(argv[1],"-s") == 0 );
 
@@ -2541,8 +2813,6 @@ int main(int argc, char *argv[])
 
   /* assume cube subdomain geometry for now */
   Index_t nx = atoi(argv[2]);
-
-  printf("nx = %d\n", nx);
 
   Domain *locDom ;
   locDom = NewDomain(argv,nx,structured) ;
@@ -2566,21 +2836,19 @@ int main(int argc, char *argv[])
   double timer_start = occa::currentTime();
 
   while(locDom->time_h < locDom->stoptime)
-  {
-    // Time increment has been moved after computation of volume forces to hide launch latencies
-    //TimeIncrement(locDom) ;
+    {
+      // Time increment has been moved after computation of volume forces to hide launch latencies
+      //TimeIncrement(locDom) ;
 
-    LagrangeLeapFrog(locDom) ;
+      LagrangeLeapFrog(locDom) ;
 
-    checkErrors(locDom,its);
+      checkErrors(locDom,its);
 
 #if LULESH_SHOW_PROGRESS
-    printf("time = %e, dt=%e\n", double(locDom->time_h), double(locDom->deltatime_h) ) ;
+      printf("time = %e, dt=%e\n", double(locDom->time_h), double(locDom->deltatime_h) ) ;
 #endif
-    its++;
-
-    break;
-  }
+      its++;
+    }
 
   double timer_stop = occa::currentTime();
 

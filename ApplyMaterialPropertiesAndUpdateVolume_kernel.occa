@@ -3,32 +3,32 @@
 occaDeviceFunction
 void ApplyMaterialPropertiesForElems_device(const Real_t eosvmin,
 					    const Real_t eosvmax,
-					    occaPointer Real_t *vnew,
-					    occaPointer Real_t *v,
-					    __private Real_t *vnewc, // ?
-					    occaPointer Index_t* bad_vol,
+					    const Real_t *vnew,
+					    const Real_t *v,
+					    Real_t *vnewc,
+					    Index_t* bad_vol,
 					    const Index_t i,
 					    const Index_t zn){
 
   *vnewc = vnew[zn] ;
 
-  if (eosvmin != cast_Real_t(0.)) {
+  if (eosvmin != Real_t(0.)) {
     if (*vnewc < eosvmin)
       *vnewc = eosvmin ;
   }
 
-  if (eosvmax != cast_Real_t(0.)) {
+  if (eosvmax != Real_t(0.)) {
     if (*vnewc > eosvmax)
       *vnewc = eosvmax ;
   }
 
   // Now check for valid volume
   Real_t vc = v[zn];
-  if (eosvmin != cast_Real_t(0.)) {
+  if (eosvmin != Real_t(0.)) {
     if (vc < eosvmin)
       vc = eosvmin ;
   }
-  if (eosvmax != cast_Real_t(0.)) {
+  if (eosvmax != Real_t(0.)) {
     if (vc > eosvmax)
       vc = eosvmax ;
   }
@@ -48,15 +48,15 @@ void CalcSoundSpeedForElems_device(const Real_t vnewc,
 				   const Real_t bvc,
 				   const Real_t ss4o3,
 				   const Index_t nz,
-				   occaPointer Real_t *ss,
+				   Real_t *ss,
 				   const Index_t i,
 				   const Index_t iz){
 
   Real_t ssTmp = ( pbvc * enewc + vnewc * vnewc *
 		   bvc * pnewc) / rho0;
 
-  if (ssTmp <= cast_Real_t(1.111111e-36)) {
-    ssTmp = cast_Real_t(1.111111e-36);
+  if (ssTmp <= Real_t(1.111111e-36)) {
+    ssTmp = Real_t(1.111111e-36);
   }
   else {
     ssTmp = SQRT(ssTmp) ;
@@ -66,9 +66,9 @@ void CalcSoundSpeedForElems_device(const Real_t vnewc,
 
 
 occaDeviceFunction
-void CalcPressureForElems_device(__private Real_t *p_new,
-				 __private Real_t *bvc,
-				 __private Real_t *pbvc,
+void CalcPressureForElems_device(Real_t *p_new,
+				 Real_t *bvc,
+				 Real_t *pbvc,
 				 const Real_t e_old,
 				 const Real_t compression,
 				 const Real_t vnewc,
@@ -76,19 +76,19 @@ void CalcPressureForElems_device(__private Real_t *p_new,
 				 const Real_t p_cut,
 				 const Real_t eosvmax){
 
-  Real_t c1s = cast_Real_t(2.0)/cast_Real_t(3.0);
+  Real_t c1s = Real_t(2.0)/Real_t(3.0);
   Real_t p_temp = *p_new;
 
-  *bvc = c1s * (compression + cast_Real_t(1.));
+  *bvc = c1s * (compression + Real_t(1.));
   *pbvc = c1s;
 
   p_temp = (*bvc) * e_old;
 
   if ( FABS(p_temp) <  p_cut )
-    p_temp = cast_Real_t(0.0) ;
+    p_temp = Real_t(0.0) ;
 
   if ( vnewc >= eosvmax ) /* impossible condition here? */
-    p_temp = cast_Real_t(0.0) ;
+    p_temp = Real_t(0.0) ;
 
   if (p_temp < pmin)
     p_temp = pmin ;
@@ -101,24 +101,24 @@ void CalcPressureForElems_device(__private Real_t *p_new,
 occaDeviceFunction
 void UpdateVolumesForElems_device(const Index_t numElem,
 				  const Real_t v_cut,
-                                  occaPointer const Real_t *vnew,
-                                  occaPointer Real_t *v,
+                                  const Real_t *vnew,
+                                  Real_t *v,
                                   const int i){
   Real_t tmpV ;
   tmpV = vnew[i] ;
 
-  if ( FABS(tmpV - cast_Real_t(1.0)) < v_cut )
-    tmpV = cast_Real_t(1.0) ;
+  if ( FABS(tmpV - Real_t(1.0)) < v_cut )
+    tmpV = Real_t(1.0) ;
   v[i] = tmpV ;
 }
 
 
 occaDeviceFunction
-void CalcEnergyForElems_device(__private Real_t *p_new,
-			       __private Real_t *e_new,
-			       __private Real_t *q_new,
-			       __private Real_t *bvc,
-			       __private Real_t *pbvc,
+void CalcEnergyForElems_device(Real_t *p_new,
+			       Real_t *e_new,
+			       Real_t *q_new,
+			       Real_t *bvc,
+			       Real_t *pbvc,
 			       const Real_t p_old,
 			       const Real_t e_old,
 			       const Real_t q_old,
@@ -138,11 +138,11 @@ void CalcEnergyForElems_device(__private Real_t *p_new,
 			       const Real_t eosvmax,
 			       const Index_t length){
 
-  const Real_t sixth = cast_Real_t(1.0) / cast_Real_t(6.0) ;
+  const Real_t sixth = Real_t(1.0) / Real_t(6.0) ;
   Real_t pHalfStep;
 
-  *e_new = e_old - cast_Real_t(0.5) * delvc * (p_old + q_old)
-    + cast_Real_t(0.5) * work;
+  *e_new = e_old - Real_t(0.5) * delvc * (p_old + q_old)
+    + Real_t(0.5) * work;
 
   if (*e_new  < emin ) {
     *e_new = emin ;
@@ -152,17 +152,17 @@ void CalcEnergyForElems_device(__private Real_t *p_new,
 			      *e_new, compHalfStep, vnewc,
 			      pmin, p_cut, eosvmax);
 
-  Real_t vhalf = cast_Real_t(1.) / (cast_Real_t(1.) + compHalfStep) ;
+  Real_t vhalf = Real_t(1.) / (Real_t(1.) + compHalfStep) ;
 
-  if ( delvc > cast_Real_t(0.) ) {
-    *q_new /* = qq = ql */ = cast_Real_t(0.) ;
+  if ( delvc > Real_t(0.) ) {
+    *q_new /* = qq = ql */ = Real_t(0.) ;
   }
   else {
     Real_t ssc = ( (*pbvc) * (*e_new)
 		   + vhalf * vhalf * (*bvc) * pHalfStep ) / rho0 ;
 
-    if ( ssc <= cast_Real_t(0.) ) {
-      ssc =cast_Real_t(.333333e-36) ;
+    if ( ssc <= Real_t(0.) ) {
+      ssc =Real_t(.333333e-36) ;
     } else {
       ssc = SQRT(ssc) ;
     }
@@ -170,14 +170,14 @@ void CalcEnergyForElems_device(__private Real_t *p_new,
     *q_new = (ssc*ql + qq) ;
   }
 
-  (*e_new) = (*e_new) + cast_Real_t(0.5) * delvc
-    * (  cast_Real_t(3.0)*(p_old     + q_old)
-	 - cast_Real_t(4.0)*(pHalfStep + (*q_new))) ;
+  (*e_new) = (*e_new) + Real_t(0.5) * delvc
+    * (  Real_t(3.0)*(p_old     + q_old)
+	 - Real_t(4.0)*(pHalfStep + (*q_new))) ;
 
-  (*e_new) += cast_Real_t(0.5) * work;
+  (*e_new) += Real_t(0.5) * work;
 
   if (FABS(*e_new) < e_cut) {
-    *e_new = cast_Real_t(0.)  ;
+    *e_new = Real_t(0.)  ;
   }
   if ( *e_new  < emin ) {
     *e_new = emin ;
@@ -189,15 +189,15 @@ void CalcEnergyForElems_device(__private Real_t *p_new,
 
   Real_t q_tilde ;
 
-  if (delvc > cast_Real_t(0.)) {
-    q_tilde = cast_Real_t(0.) ;
+  if (delvc > Real_t(0.)) {
+    q_tilde = Real_t(0.) ;
   }
   else {
     Real_t ssc = ( (*pbvc) * (*e_new)
 		   + vnewc * vnewc * (*bvc) * (*p_new) ) / rho0 ;
 
-    if ( ssc <= cast_Real_t(0.) ) {
-      ssc = cast_Real_t(.333333e-36) ;
+    if ( ssc <= Real_t(0.) ) {
+      ssc = Real_t(.333333e-36) ;
     } else {
       ssc = SQRT(ssc) ;
     }
@@ -205,12 +205,12 @@ void CalcEnergyForElems_device(__private Real_t *p_new,
     q_tilde = (ssc*ql + qq) ;
   }
 
-  (*e_new) = (*e_new) - (  cast_Real_t(7.0)*(p_old     + q_old)
-			   - cast_Real_t(8.0)*(pHalfStep + (*q_new))
+  (*e_new) = (*e_new) - (  Real_t(7.0)*(p_old     + q_old)
+			   - Real_t(8.0)*(pHalfStep + (*q_new))
 			   + ((*p_new) + q_tilde)) * delvc*sixth ;
 
   if (FABS(*e_new) < e_cut) {
-    (*e_new) = cast_Real_t(0.)  ;
+    (*e_new) = Real_t(0.)  ;
   }
   if ( (*e_new)  < emin ) {
     *e_new = emin ;
@@ -221,19 +221,19 @@ void CalcEnergyForElems_device(__private Real_t *p_new,
 			      pmin, p_cut, eosvmax);
 
 
-  if ( delvc <= cast_Real_t(0.) ) {
+  if ( delvc <= Real_t(0.) ) {
     Real_t ssc = ( (*pbvc) * (*e_new)
 		   + vnewc * vnewc * (*bvc) * (*p_new) ) / rho0 ;
 
-    if ( ssc <= cast_Real_t(0.) ) {
-      ssc = cast_Real_t(.333333e-36) ;
+    if ( ssc <= Real_t(0.) ) {
+      ssc = Real_t(.333333e-36) ;
     } else {
       ssc = SQRT(ssc) ;
     }
 
     *q_new = (ssc*ql + qq) ;
 
-    if (FABS(*q_new) < q_cut) *q_new = cast_Real_t(0.) ;
+    if (FABS(*q_new) < q_cut) *q_new = Real_t(0.) ;
   }
 
   //  return ;
@@ -289,26 +289,26 @@ ApplyMaterialPropertiesAndUpdateVolume_kernel(occaKernelInfoArg,
       q_old = q[zidx];
 
       Real_t vchalf ;
-      compression = cast_Real_t(1.) / vnewc - cast_Real_t(1.);
-      vchalf = vnewc - delvc * cast_Real_t(.5);
-      compHalfStep = cast_Real_t(1.) / vchalf - cast_Real_t(1.);
+      compression = Real_t(1.) / vnewc - Real_t(1.);
+      vchalf = vnewc - delvc * Real_t(.5);
+      compHalfStep = Real_t(1.) / vchalf - Real_t(1.);
 
-      if ( eosvmin != cast_Real_t(0.) ) {
+      if ( eosvmin != Real_t(0.) ) {
 	if (vnewc <= eosvmin) { /* impossible due to calling func? */
 	  compHalfStep = compression ;
 	}
       }
-      if ( eosvmax != cast_Real_t(0.) ) {
+      if ( eosvmax != Real_t(0.) ) {
 	if (vnewc >= eosvmax) { /* impossible due to calling func? */
-	  p_old        = cast_Real_t(0.) ;
-	  compression  = cast_Real_t(0.) ;
-	  compHalfStep = cast_Real_t(0.) ;
+	  p_old        = Real_t(0.) ;
+	  compression  = Real_t(0.) ;
+	  compHalfStep = Real_t(0.) ;
 	}
       }
 
       qq_old = qq[zidx] ;
       ql_old = ql[zidx] ;
-      work = cast_Real_t(0.) ;
+      work = Real_t(0.) ;
 
       CalcEnergyForElems_device(&p_new, &e_new, &q_new, &bvc, &pbvc,
 				p_old, e_old,  q_old, compression, compHalfStep,

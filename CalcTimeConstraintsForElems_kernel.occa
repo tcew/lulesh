@@ -21,8 +21,8 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
     occaVolatile occaShared Real_t s_mindthydro[block_size] occaAligned;
     occaVolatile occaShared Real_t s_mindtcourant[block_size] occaAligned;
 
-    Real_t mindthydro = cast_Real_t(1.0e+20) ;
-    Real_t mindtcourant = cast_Real_t(1.0e+20) ;
+    Real_t mindthydro = Real_t(1.0e+20) ;
+    Real_t mindtcourant = Real_t(1.0e+20) ;
 
     occaInnerFor0{
       Real_t dthydro = mindthydro;
@@ -36,8 +36,8 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 	Real_t vdov_tmp = vdov[indx];
 
 	// Computing dt_hydro
-	if (vdov_tmp != cast_Real_t(0.)) {
-	  Real_t dtdvov = dvovmax / (FABS(vdov_tmp)+cast_Real_t(1.e-20)) ;
+	if (vdov_tmp != Real_t(0.)) {
+	  Real_t dtdvov = dvovmax / (FABS(vdov_tmp)+Real_t(1.e-20)) ;
 	  if ( dthydro > dtdvov ) {
             dthydro = dtdvov ;
 	  }
@@ -55,7 +55,7 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 	dtf = area_tmp / SQRT(dtf) ;
 
 	/* determine minimum timestep with its corresponding elem */
-	if (vdov_tmp != cast_Real_t(0.) && dtf < dtcourant) {
+	if (vdov_tmp != Real_t(0.) && dtf < dtcourant) {
 	  dtcourant = dtf ;
 	}
 
@@ -79,8 +79,8 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
     Real_t mindtCourant = s_mindtcourant[0];
 
     for(int tid=1; tid<block_size; tid++){
-      mindtHydro = min(mindtHydro, s_mindthydro[tid]);
-      mindtCourant = min(mindtCourant, s_mindtcourant[tid]);
+      mindtHydro = MIN(mindtHydro, s_mindthydro[tid]);
+      mindtCourant = MIN(mindtCourant, s_mindtcourant[tid]);
     }
 
     dev_mindtcourant[occaOuterId0] = mindtCourant;
@@ -91,63 +91,63 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
     // Do shared memory reduction
     if (block_size >= 1024) {
       if (tid < 512) {
-        s_mindthydro[tid]   = min( s_mindthydro[tid]  , s_mindthydro[tid + 512]) ;
-        s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid + 512]) ; }
+        s_mindthydro[tid]   = MIN( s_mindthydro[tid]  , s_mindthydro[tid + 512]) ;
+        s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid + 512]) ; }
       occaBarrier(occaLocalMemFence);
     }
 
     if (block_size >=  512) {
       if (tid < 256) {
-        s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid + 256]) ;
-        s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid + 256]) ; }
+        s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid + 256]) ;
+        s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid + 256]) ; }
       occaBarrier(occaLocalMemFence);
     }
 
     if (block_size >=  256) {
       if (tid < 128) {
-        s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid + 128]) ;
-        s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid + 128]) ; }
+        s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid + 128]) ;
+        s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid + 128]) ; }
       occaBarrier(occaLocalMemFence);
       //__syncthreads();
     }
 
     if (block_size >=  128) {
       if (tid <  64) {
-        s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid +  64]) ;
-        s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid +  64]) ; }
+        s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid +  64]) ;
+        s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid +  64]) ; }
       occaBarrier(occaLocalMemFence);
       //  __syncthreads();
     }
 
     if (tid <  32) {
-      s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid +  32]) ;
-      s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid +  32]) ;
+      s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid +  32]) ;
+      s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid +  32]) ;
       if(simdWidth < 32) occaBarrier(occaLocalMemFence);
     }
 
     if (tid <  16) {
-      s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid +  16]) ;
-      s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid +  16]) ;
+      s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid +  16]) ;
+      s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid +  16]) ;
       if(simdWidth < 16) occaBarrier(occaLocalMemFence);
     }
     if (tid <   8) {
-      s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid +   8]) ;
-      s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid +   8]) ;
+      s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid +   8]) ;
+      s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid +   8]) ;
       if(simdWidth < 8) occaBarrier(occaLocalMemFence);
     }
     if (tid <   4) {
-      s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid +   4]) ;
-      s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid +   4]) ;
+      s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid +   4]) ;
+      s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid +   4]) ;
       if(simdWidth < 4) occaBarrier(occaLocalMemFence);
     }
     if (tid <   2) {
-      s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid +   2]) ;
-      s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid +   2]) ;
+      s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid +   2]) ;
+      s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid +   2]) ;
       if(simdWidth < 2) occaBarrier(occaLocalMemFence);
     }
     if (tid <   1) {
-      s_mindthydro[tid] = min( s_mindthydro[tid], s_mindthydro[tid +   1]) ;
-      s_mindtcourant[tid] = min( s_mindtcourant[tid], s_mindtcourant[tid +   1]) ;
+      s_mindthydro[tid] = MIN( s_mindthydro[tid], s_mindthydro[tid +   1]) ;
+      s_mindtcourant[tid] = MIN( s_mindtcourant[tid], s_mindtcourant[tid +   1]) ;
     }
 
     // Store in global memory

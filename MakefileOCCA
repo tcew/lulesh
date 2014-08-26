@@ -26,8 +26,8 @@ else
 	flags += -O3 -DNDEBUG
 endif
 
-lulesh: lulesh.cpp
-	$(CC) $(flags) lulesh.cpp -o lulesh $(libs)
+luleshOCCA: lulesh.cpp
+	$(CC) $(flags) lulesh.cpp -o luleshOCCA $(libs)
 
 clean:
 	rm -rf allocator.o  lulesh

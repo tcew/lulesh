@@ -579,9 +579,6 @@ __launch_bounds__(64,16) // 32-bit
 
 
 /* // TODO: use texture memory instead of global */
-/* #define occaReadOnly */
-/* #define occaTexture1D Real_t* occaRestrict */
-/* #define occaTextFetch1D(a, i) a[i] */
 
 /* occaKernel */
 /* void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg, */
@@ -591,12 +588,12 @@ __launch_bounds__(64,16) // 32-bit
 /* 						const occaPointer Index_t* occaRestrict nodelist, */
 /* 						const occaPointer Real_t* occaRestrict volo, */
 /* 						const occaPointer Real_t* occaRestrict v, */
-/* 						occaPointer occaReadOnly occaTexture1D x, */
-/* 						occaPointer occaReadOnly occaTexture1D y, */
-/* 						occaPointer occaReadOnly occaTexture1D z, */
-/* 						occaPointer occaReadOnly occaTexture1D xd, */
-/* 						occaPointer occaReadOnly occaTexture1D yd, */
-/* 						occaPointer occaReadOnly occaTexture1D zd, */
+/* 						occaPointer occaReadOnly occaTexture1D(x), */
+/* 						occaPointer occaReadOnly occaTexture1D(y), */
+/* 						occaPointer occaReadOnly occaTexture1D(z), */
+/* 						occaPointer occaReadOnly occaTexture1D(xd), */
+/* 						occaPointer occaReadOnly occaTexture1D(yd), */
+/* 						occaPointer occaReadOnly occaTexture1D(zd), */
 /* 						occaPointer Real_t* occaRestrict vnew, */
 /* 						occaPointer Real_t* occaRestrict delv, */
 /* 						occaPointer Real_t* occaRestrict arealg, */
@@ -646,9 +643,9 @@ __launch_bounds__(64,16) // 32-bit
 /* 	  // y_local[lnode] = y[gnode]; */
 /* 	  // z_local[lnode] = z[gnode]; */
 
-/* 	  x_local[lnode] = occaTextFetch1D(x, gnode); */
-/* 	  y_local[lnode] = occaTextFetch1D(y, gnode); */
-/* 	  z_local[lnode] = occaTextFetch1D(z, gnode); */
+/* 	  x_local[lnode] = occaTexGet1D(x, gnode); */
+/* 	  y_local[lnode] = occaTexGet1D(y, gnode); */
+/* 	  z_local[lnode] = occaTexGet1D(z, gnode); */
 /* 	} */
 
 /* 	// volume calculations */
