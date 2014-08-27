@@ -76,7 +76,7 @@ Additional BSD Notice
 #include <texture_objAPI.h>
 
 #define LULESH_SHOW_PROGRESS 1
-//#define DOUBLE_PRECISION
+#define DOUBLE_PRECISION
 //#define SAMI
 
 enum {
