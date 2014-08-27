@@ -9,6 +9,17 @@ void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,
                       occaPointer Real_t *delx_xi,
                       occaPointer Real_t *delv_xi,
                       occaPointer Real_t *delx_eta,
+                      occaPointer Real_t *delv_eta);
+
+occaDeviceFunction
+void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,
+                      Real_t *xv, Real_t *yv, Real_t *zv,
+                      Real_t vol,
+                      occaPointer Real_t *delx_zeta,
+                      occaPointer Real_t *delv_zeta,
+                      occaPointer Real_t *delx_xi,
+                      occaPointer Real_t *delv_xi,
+                      occaPointer Real_t *delx_eta,
                       occaPointer Real_t *delv_eta){
 
 #define SUM4(a,b,c,d) (a + b + c + d)
@@ -91,6 +102,14 @@ void CalcElemVelocityGradient( const Real_t* const xvel,
 			       const Real_t* const zvel,
 			       const Real_t* b,
 			       const Real_t detJ,
+			       Real_t* const d );
+
+occaDeviceFunction
+void CalcElemVelocityGradient( const Real_t* const xvel,
+			       const Real_t* const yvel,
+			       const Real_t* const zvel,
+			       const Real_t* b,
+			       const Real_t detJ,
 			       Real_t* const d ){
 
   const Real_t inv_detJ = ((Real_t)1.0) / detJ ;
@@ -151,6 +170,13 @@ void CalcElemVelocityGradient( const Real_t* const xvel,
   d[3]  = ((Real_t) .5) * ( dzddy + dyddz );
 }
 
+occaDeviceFunction void AreaFace( const Real_t x0, const Real_t x1,
+				  const Real_t x2, const Real_t x3,
+				  const Real_t y0, const Real_t y1,
+				  const Real_t y2, const Real_t y3,
+				  const Real_t z0, const Real_t z1,
+				  const Real_t z2, const Real_t z3,
+				  Real_t *area);
 
 occaDeviceFunction void AreaFace( const Real_t x0, const Real_t x1,
 				  const Real_t x2, const Real_t x3,
@@ -173,6 +199,12 @@ occaDeviceFunction void AreaFace( const Real_t x0, const Real_t x1,
      (fx * gx + fy * gy + fz * gz);
 }
 
+occaDeviceFunction
+void CalcElemCharacteristicLength( const Real_t x[8],
+				   const Real_t y[8],
+				   const Real_t z[8],
+				   const Real_t volume,
+				   Real_t *charLen);
 
 occaDeviceFunction
 void CalcElemCharacteristicLength( const Real_t x[8],

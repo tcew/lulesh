@@ -8,6 +8,16 @@ void ApplyMaterialPropertiesForElems_device(const Real_t eosvmin,
 					    Real_t *vnewc,
 					    occaPointer Index_t* bad_vol,
 					    const Index_t i,
+					    const Index_t zn);
+
+occaDeviceFunction
+void ApplyMaterialPropertiesForElems_device(const Real_t eosvmin,
+					    const Real_t eosvmax,
+					    const occaPointer Real_t *vnew,
+					    occaPointer Real_t *v,
+					    Real_t *vnewc,
+					    occaPointer Index_t* bad_vol,
+					    const Index_t i,
 					    const Index_t zn){
 
   *vnewc = vnew[zn] ;
@@ -50,6 +60,19 @@ void CalcSoundSpeedForElems_device(const Real_t vnewc,
 				   const Index_t nz,
 				   occaPointer Real_t *ss,
 				   const Index_t i,
+				   const Index_t iz);
+
+occaDeviceFunction
+void CalcSoundSpeedForElems_device(const Real_t vnewc,
+				   const Real_t rho0,
+				   const Real_t enewc,
+				   const Real_t pnewc,
+				   const Real_t pbvc,
+				   const Real_t bvc,
+				   const Real_t ss4o3,
+				   const Index_t nz,
+				   occaPointer Real_t *ss,
+				   const Index_t i,
 				   const Index_t iz){
 
   Real_t ssTmp = ( pbvc * enewc + vnewc * vnewc *
@@ -64,6 +87,16 @@ void CalcSoundSpeedForElems_device(const Real_t vnewc,
   ss[iz] = ssTmp;
 }
 
+occaDeviceFunction
+void CalcPressureForElems_device(Real_t *p_new,
+				 Real_t *bvc,
+				 Real_t *pbvc,
+				 const Real_t e_old,
+				 const Real_t compression,
+				 const Real_t vnewc,
+				 const Real_t pmin,
+				 const Real_t p_cut,
+				 const Real_t eosvmax);
 
 occaDeviceFunction
 void CalcPressureForElems_device(Real_t *p_new,
@@ -97,6 +130,12 @@ void CalcPressureForElems_device(Real_t *p_new,
 
 }
 
+occaDeviceFunction
+void UpdateVolumesForElems_device(const Index_t numElem,
+				  const Real_t v_cut,
+                                  const occaPointer Real_t *vnew,
+                                  occaPointer Real_t *v,
+                                  const Index_t i);
 
 occaDeviceFunction
 void UpdateVolumesForElems_device(const Index_t numElem,
@@ -112,6 +151,31 @@ void UpdateVolumesForElems_device(const Index_t numElem,
   v[i] = tmpV ;
 }
 
+
+occaDeviceFunction
+void CalcEnergyForElems_device(Real_t *p_new,
+			       Real_t *e_new,
+			       Real_t *q_new,
+			       Real_t *bvc,
+			       Real_t *pbvc,
+			       const Real_t p_old,
+			       const Real_t e_old,
+			       const Real_t q_old,
+			       const Real_t compression,
+			       const Real_t compHalfStep,
+			       const Real_t vnewc,
+			       const Real_t work,
+			       const Real_t delvc,
+			       const Real_t pmin,
+			       const Real_t p_cut,
+			       const Real_t e_cut,
+			       const Real_t q_cut,
+			       const Real_t emin,
+			       const Real_t qq,
+			       const Real_t ql,
+			       const Real_t rho0,
+			       const Real_t eosvmax,
+			       const Index_t length);
 
 occaDeviceFunction
 void CalcEnergyForElems_device(Real_t *p_new,

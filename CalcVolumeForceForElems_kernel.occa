@@ -2,6 +2,10 @@
 
 occaDeviceFunction void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8], const Real_t zn[8],
 					   const Real_t dvdxn[8], const Real_t dvdyn[8], const Real_t dvdzn[8],
+					   Real_t hourgam[8][4], Real_t volinv);
+
+occaDeviceFunction void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8], const Real_t zn[8],
+					   const Real_t dvdxn[8], const Real_t dvdyn[8], const Real_t dvdzn[8],
 					   Real_t hourgam[8][4], Real_t volinv){
   Real_t hourmodx, hourmody, hourmodz;
 
@@ -54,6 +58,12 @@ occaDeviceFunction void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8
   hourgam[7][3] = -1.0 - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz);
 
 }
+
+occaDeviceFunction void CalcElemFBHourglassForce(Real_t *xd, Real_t *yd, Real_t *zd,  Real_t *hourgam0,
+						 Real_t *hourgam1, Real_t *hourgam2, Real_t *hourgam3,
+						 Real_t *hourgam4, Real_t *hourgam5, Real_t *hourgam6,
+						 Real_t *hourgam7, Real_t coefficient,
+						 Real_t *hgfx, Real_t *hgfy, Real_t *hgfz );
 
 occaDeviceFunction void CalcElemFBHourglassForce(Real_t *xd, Real_t *yd, Real_t *zd,  Real_t *hourgam0,
 						 Real_t *hourgam1, Real_t *hourgam2, Real_t *hourgam3,
@@ -242,6 +252,14 @@ occaDeviceFunction void VoluDer(const Real_t x0, const Real_t x1, const Real_t x
 				const Real_t y3, const Real_t y4, const Real_t y5,
 				const Real_t z0, const Real_t z1, const Real_t z2,
 				const Real_t z3, const Real_t z4, const Real_t z5,
+				Real_t* dvdx, Real_t* dvdy, Real_t* dvdz);
+
+occaDeviceFunction void VoluDer(const Real_t x0, const Real_t x1, const Real_t x2,
+				const Real_t x3, const Real_t x4, const Real_t x5,
+				const Real_t y0, const Real_t y1, const Real_t y2,
+				const Real_t y3, const Real_t y4, const Real_t y5,
+				const Real_t z0, const Real_t z1, const Real_t z2,
+				const Real_t z3, const Real_t z4, const Real_t z5,
 				Real_t* dvdx, Real_t* dvdy, Real_t* dvdz){
 
   const Real_t twelfth = ((Real_t) 1.0) / ((Real_t) 12.0) ;
@@ -265,6 +283,13 @@ occaDeviceFunction void VoluDer(const Real_t x0, const Real_t x1, const Real_t x
   *dvdy *= twelfth;
   *dvdz *= twelfth;
 }
+
+occaDeviceFunction void CalcElemVolumeDerivative(Real_t dvdx[8],
+						 Real_t dvdy[8],
+						 Real_t dvdz[8],
+						 const Real_t x[8],
+						 const Real_t y[8],
+						 const Real_t z[8]);
 
 occaDeviceFunction void CalcElemVolumeDerivative(Real_t dvdx[8],
 						 Real_t dvdy[8],
@@ -313,6 +338,15 @@ occaDeviceFunction void CalcElemVolumeDerivative(Real_t dvdx[8],
 	  &dvdx[7], &dvdy[7], &dvdz[7]);
 }
 
+occaDeviceFunction void
+SumElemFaceNormal(Real_t *normalX0, Real_t *normalY0, Real_t *normalZ0,
+		  Real_t *normalX1, Real_t *normalY1, Real_t *normalZ1,
+		  Real_t *normalX2, Real_t *normalY2, Real_t *normalZ2,
+		  Real_t *normalX3, Real_t *normalY3, Real_t *normalZ3,
+		  const Real_t x0, const Real_t y0, const Real_t z0,
+		  const Real_t x1, const Real_t y1, const Real_t z1,
+		  const Real_t x2, const Real_t y2, const Real_t z2,
+		  const Real_t x3, const Real_t y3, const Real_t z3);
 
 occaDeviceFunction void
 SumElemFaceNormal(Real_t *normalX0, Real_t *normalY0, Real_t *normalZ0,
@@ -350,6 +384,13 @@ SumElemFaceNormal(Real_t *normalX0, Real_t *normalY0, Real_t *normalZ0,
   *normalZ2 += areaZ;
   *normalZ3 += areaZ;
 }
+
+occaDeviceFunction void CalcElemNodeNormals(Real_t pfx[8],
+					    Real_t pfy[8],
+					    Real_t pfz[8],
+					    const Real_t x[8],
+					    const Real_t y[8],
+					    const Real_t z[8]);
 
 occaDeviceFunction void CalcElemNodeNormals(Real_t pfx[8],
 					    Real_t pfy[8],
