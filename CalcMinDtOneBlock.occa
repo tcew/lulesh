@@ -27,7 +27,7 @@ occaKernel void CalcMinDtOneBlock(occaKernelInfoArg,
 
       occaBarrier(occaLocalMemFence);
 
-#if occaCPU==1
+#if OCCA_USING_OPENMP
       dtcourant[0] = s_data[0];
       for(int tid=1; tid<block_size; tid++)
 	dtcourant[0] = MIN(dtcourant[0], s_data[tid]);
@@ -101,7 +101,7 @@ occaKernel void CalcMinDtOneBlock(occaKernelInfoArg,
       }
 
       occaBarrier(occaLocalMemFence);
-#if occaCPU==1
+#if OCCA_USING_OPENMP
       (*dthydro) = s_data[0];
       for(int tid=1; tid<block_size; tid++)
 	(*dthydro) = MIN((*dthydro), s_data[tid]);

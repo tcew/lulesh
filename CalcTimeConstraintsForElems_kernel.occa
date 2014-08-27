@@ -74,7 +74,7 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
 
     occaBarrier(occaLocalMemFence);
 
-#if occaCPU==1
+#if OCCA_USING_OPENMP
     Real_t mindtHydro   = s_mindthydro[0];
     Real_t mindtCourant = s_mindtcourant[0];
 
