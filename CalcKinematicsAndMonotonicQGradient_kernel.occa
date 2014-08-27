@@ -89,7 +89,7 @@ occaDeviceFunction
 void CalcElemVelocityGradient( const Real_t* const xvel,
 			       const Real_t* const yvel,
 			       const Real_t* const zvel,
-			       const Real_t ** const b,
+			       const Real_t* b,
 			       const Real_t detJ,
 			       Real_t* const d ){
 
@@ -101,50 +101,50 @@ void CalcElemVelocityGradient( const Real_t* const xvel,
   // const Real_t* const pfy = b[1];
   // const Real_t* const pfz = b[2];
 
-  d[0] = inv_detJ * ( b[0][0] * (xvel[0]-xvel[6])
-		      + b[0][1] * (xvel[1]-xvel[7])
-		      + b[0][2] * (xvel[2]-xvel[4])
-		      + b[0][3] * (xvel[3]-xvel[5]) );
+  d[0] = inv_detJ * ( b[8*0+0] * (xvel[0]-xvel[6])
+		      + b[8*0+1] * (xvel[1]-xvel[7])
+		      + b[8*0+2] * (xvel[2]-xvel[4])
+		      + b[8*0+3] * (xvel[3]-xvel[5]) );
 
-  d[1] = inv_detJ * ( b[1][0] * (yvel[0]-yvel[6])
-		      + b[1][1] * (yvel[1]-yvel[7])
-		      + b[1][2] * (yvel[2]-yvel[4])
-		      + b[1][3] * (yvel[3]-yvel[5]) );
+  d[1] = inv_detJ * ( b[8*1+0] * (yvel[0]-yvel[6])
+		      + b[8*1+1] * (yvel[1]-yvel[7])
+		      + b[8*1+2] * (yvel[2]-yvel[4])
+		      + b[8*1+3] * (yvel[3]-yvel[5]) );
 
-  d[2] = inv_detJ * ( b[2][0] * (zvel[0]-zvel[6])
-		      + b[2][1] * (zvel[1]-zvel[7])
-		      + b[2][2] * (zvel[2]-zvel[4])
-		      + b[2][3] * (zvel[3]-zvel[5]) );
+  d[2] = inv_detJ * ( b[8*2+0] * (zvel[0]-zvel[6])
+		      + b[8*2+1] * (zvel[1]-zvel[7])
+		      + b[8*2+2] * (zvel[2]-zvel[4])
+		      + b[8*2+3] * (zvel[3]-zvel[5]) );
 
-  dyddx  = inv_detJ * ( b[0][0] * (yvel[0]-yvel[6])
-			+ b[0][1] * (yvel[1]-yvel[7])
-			+ b[0][2] * (yvel[2]-yvel[4])
-			+ b[0][3] * (yvel[3]-yvel[5]) );
+  dyddx  = inv_detJ * ( b[8*0+0] * (yvel[0]-yvel[6])
+			+ b[8*0+1] * (yvel[1]-yvel[7])
+			+ b[8*0+2] * (yvel[2]-yvel[4])
+			+ b[8*0+3] * (yvel[3]-yvel[5]) );
 
-  dxddy  = inv_detJ * ( b[1][0] * (xvel[0]-xvel[6])
-			+ b[1][1] * (xvel[1]-xvel[7])
-			+ b[1][2] * (xvel[2]-xvel[4])
-			+ b[1][3] * (xvel[3]-xvel[5]) );
+  dxddy  = inv_detJ * ( b[8*1+0] * (xvel[0]-xvel[6])
+			+ b[8*1+1] * (xvel[1]-xvel[7])
+			+ b[8*1+2] * (xvel[2]-xvel[4])
+			+ b[8*1+3] * (xvel[3]-xvel[5]) );
 
-  dzddx  = inv_detJ * ( b[0][0] * (zvel[0]-zvel[6])
-			+ b[0][1] * (zvel[1]-zvel[7])
-			+ b[0][2] * (zvel[2]-zvel[4])
-			+ b[0][3] * (zvel[3]-zvel[5]) );
+  dzddx  = inv_detJ * ( b[8*0+0] * (zvel[0]-zvel[6])
+			+ b[8*0+1] * (zvel[1]-zvel[7])
+			+ b[8*0+2] * (zvel[2]-zvel[4])
+			+ b[8*0+3] * (zvel[3]-zvel[5]) );
 
-  dxddz  = inv_detJ * ( b[2][0] * (xvel[0]-xvel[6])
-			+ b[2][1] * (xvel[1]-xvel[7])
-			+ b[2][2] * (xvel[2]-xvel[4])
-			+ b[2][3] * (xvel[3]-xvel[5]) );
+  dxddz  = inv_detJ * ( b[8*2+0] * (xvel[0]-xvel[6])
+			+ b[8*2+1] * (xvel[1]-xvel[7])
+			+ b[8*2+2] * (xvel[2]-xvel[4])
+			+ b[8*2+3] * (xvel[3]-xvel[5]) );
 
-  dzddy  = inv_detJ * ( b[1][0] * (zvel[0]-zvel[6])
-			+ b[1][1] * (zvel[1]-zvel[7])
-			+ b[1][2] * (zvel[2]-zvel[4])
-			+ b[1][3] * (zvel[3]-zvel[5]) );
+  dzddy  = inv_detJ * ( b[8*1+0] * (zvel[0]-zvel[6])
+			+ b[8*1+1] * (zvel[1]-zvel[7])
+			+ b[8*1+2] * (zvel[2]-zvel[4])
+			+ b[8*1+3] * (zvel[3]-zvel[5]) );
 
-  dyddz  = inv_detJ * ( b[2][0] * (yvel[0]-yvel[6])
-			+ b[2][1] * (yvel[1]-yvel[7])
-			+ b[2][2] * (yvel[2]-yvel[4])
-			+ b[2][3] * (yvel[3]-yvel[5]) );
+  dyddz  = inv_detJ * ( b[8*2+0] * (yvel[0]-yvel[6])
+			+ b[8*2+1] * (yvel[1]-yvel[7])
+			+ b[8*2+2] * (yvel[2]-yvel[4])
+			+ b[8*2+3] * (yvel[3]-yvel[5]) );
 
   d[5]  = ((Real_t) .5) * ( dxddy + dyddx );
   d[4]  = ((Real_t) .5) * ( dxddz + dzddx );
@@ -346,7 +346,7 @@ void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg,
 
 	CalcElemShapeFunctionDerivatives(x_local,y_local,z_local,B,&detJ );
 
-	CalcElemVelocityGradient(xd_local,yd_local,zd_local,B,detJ,D);
+	CalcElemVelocityGradient(xd_local,yd_local,zd_local,B[0],detJ,D);
 
 	// ------------------------
 	// CALC LAGRANGE ELEM 2

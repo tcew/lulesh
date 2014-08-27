@@ -762,7 +762,8 @@ static void occa_init(){
   int dev = 0;
 
   // occaHandle.setup("CUDA", plat, dev);
-  occaHandle.setup("OpenCL", plat, dev);
+  // occaHandle.setup("OpenCL", plat, dev);
+  occaHandle.setup("OpenMP", plat, dev);
 
   buildLuleshKernels();
 

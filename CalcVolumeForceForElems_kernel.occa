@@ -578,10 +578,26 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 #pragma unroll
       for (int i=0;i<8;i++){
 	const Index_t ni= n[i];
-	// atomicAdd(&fx_node[ni],hgfx[i]);
-	// atomicAdd(&fy_node[ni],hgfy[i]);
-	// atomicAdd(&fz_node[ni],hgfz[i]);
 
+	// TODO: add atomics in occa
+#if occaCUDA
+	atomicAdd(&fx_node[ni],hgfx[i]);
+	atomicAdd(&fy_node[ni],hgfy[i]);
+	atomicAdd(&fz_node[ni],hgfz[i]);
+#elif occaOpenCL
+	atomic_add(fx_node+ni, hgfx[i]);
+	atomic_add(fy_node+ni, hgfy[i]);
+	atomic_add(fz_node+ni, hgfz[i]);
+#elif occaOpenMP || occaCOI
+
+#pragma omp atomic
+	fx_node[ni] += hgfx[i];
+	fy_node[ni] += hgfy[i];
+	fz_node[ni] += hgfz[i];
+#else
+	// DIE
+
+#endif
 	// occaAtomicAdd(fx_node[ni], hgfx[i]);
 	// occaAtomicAdd(fy_node[ni], hgfy[i]);
 	// occaAtomicAdd(fz_node[ni], hgfz[i]);

@@ -56,17 +56,17 @@ CalcPositionAndVelocityForNodes_kernel(occaKernelInfoArg,
       // y[i] = ytmp;
       // z[i] = ztmp;
 
-      // occaTexSet1D(tex_x, Real_t, xtmp, i);
-      // occaTexSet1D(tex_y, Real_t, ytmp, i);
-      // occaTexSet1D(tex_z, Real_t, ztmp, i);
+      occaTexSet1D(tex_x, Real_t, xtmp, i);
+      occaTexSet1D(tex_y, Real_t, ytmp, i);
+      occaTexSet1D(tex_z, Real_t, ztmp, i);
 
       // xd[i] = xdtmp;
       // yd[i] = ydtmp;
       // zd[i] = zdtmp;
 
-      // occaTexSet1D(tex_xd, Real_t, xdtmp, i);
-      // occaTexSet1D(tex_yd, Real_t, ydtmp, i);
-      // occaTexSet1D(tex_zd, Real_t, zdtmp, i);
+      occaTexSet1D(tex_xd, Real_t, xdtmp, i);
+      occaTexSet1D(tex_yd, Real_t, ydtmp, i);
+      occaTexSet1D(tex_zd, Real_t, zdtmp, i);
     }
   }
 }
