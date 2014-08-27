@@ -453,8 +453,8 @@ void CalcVolumeForceForElems_kernel(
     Real_t* __restrict__ fz_node,
 #endif
     Index_t* __restrict__ bad_vol,
-    const Index_t num_threads)
-
+    const Index_t num_threads,
+    const bool hourg_gt_zero)
 {
 
   /*************************************************

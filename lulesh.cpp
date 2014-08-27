@@ -125,7 +125,7 @@ Real_t CalcElemVolumeTemp( const Real_t x0, const Real_t x1,
 			   const Real_t z4, const Real_t z5,
 			   const Real_t z6, const Real_t z7){
 
-  Real_t twelveth = Real_t(1.0)/Real_t(12.0);
+  Real_t twelveth = ((Real_t) 1.0)/((Real_t) 12.0);
 
   Real_t dx61 = x6 - x1;
   Real_t dy61 = y6 - y1;
@@ -224,8 +224,7 @@ Real_t CalcElemVolume( const Real_t x[8],
 
 
 occa::device occaHandle;
-occa::kernel CalcVolumeForceForElems_kernel_true;
-occa::kernel CalcVolumeForceForElems_kernel_false;
+occa::kernel CalcVolumeForceForElems_kernel;
 occa::kernel AddNodeForcesFromElems_kernel;
 occa::kernel CalcAccelerationForNodes_kernel;
 occa::kernel ApplyAccelerationBoundaryConditionsForNodes_kernel;
@@ -622,25 +621,10 @@ static void buildLuleshKernels(){
     occaHandle.buildKernelFromSource
     ("Zero_kernel.cu", "Zero_kernel");
 
-  {
-    occa::kernelInfo defs1 = defs;
-
-    defs1.addDefine("hourg_gt_zero", "true");
-    CalcVolumeForceForElems_kernel_true =
-      occaHandle.buildKernelFromSource
-      ("CalcVolumeForceForElems_kernel.cu",
-       "CalcVolumeForceForElems_kernel", defs1);
-  }
-
-  {
-    occa::kernelInfo defs1 = defs;
-    defs1.addDefine("hourg_gt_zero", "false");
-
-    CalcVolumeForceForElems_kernel_false =
-      occaHandle.buildKernelFromSource
-      ("CalcVolumeForceForElems_kernel.cu",
-       "CalcVolumeForceForElems_kernel", defs1);
-  }
+  CalcVolumeForceForElems_kernel =
+    occaHandle.buildKernelFromSource
+    ("CalcVolumeForceForElems_kernel.cu",
+     "CalcVolumeForceForElems_kernel", defs);
 
 }
 
@@ -732,25 +716,11 @@ static void buildLuleshKernels(){
     occaHandle.buildKernelFromSource
     ("Zero_kernel.occa", "Zero_kernel");
 
-  {
-    occa::kernelInfo defs1 = defs;
 
-    defs1.addDefine("hourg_gt_zero", "true");
-    CalcVolumeForceForElems_kernel_true =
-      occaHandle.buildKernelFromSource
-      ("CalcVolumeForceForElems_kernel.occa",
-       "CalcVolumeForceForElems_kernel", defs1);
-  }
-
-  {
-    occa::kernelInfo defs1 = defs;
-    defs1.addDefine("hourg_gt_zero", "false");
-
-    CalcVolumeForceForElems_kernel_false =
-      occaHandle.buildKernelFromSource
-      ("CalcVolumeForceForElems_kernel.occa",
-       "CalcVolumeForceForElems_kernel", defs1);
-  }
+  CalcVolumeForceForElems_kernel =
+    occaHandle.buildKernelFromSource
+    ("CalcVolumeForceForElems_kernel.occa",
+     "CalcVolumeForceForElems_kernel", defs);
 
 }
 
@@ -761,7 +731,7 @@ static void occa_init(){
   int plat = 0;
   int dev = 0;
 
-  //  occaHandle.setup("CUDA", plat, dev);
+  // occaHandle.setup("CUDA", plat, dev);
   // occaHandle.setup("OpenCL", plat, dev);
   occaHandle.setup("OpenMP", plat, dev);
 
@@ -883,7 +853,7 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->tex_xd = domain->xd;
   // domain->tex_yd = domain->yd;
   // domain->tex_zd = domain->zd;
-#ifndef DOUBLE_PRECISION
+  // #ifndef DOUBLE_PRECISION
   // domain->xd.copyTo(&(tempX[0]));
   // domain->yd.copyTo(&(tempY[0]));
   // domain->zd.copyTo(&(tempZ[0]));
@@ -899,7 +869,7 @@ void AllocateNodalPersistent(Domain* domain,
   // occaCompare<Real_t>(domain->xd, domain->tex_xd);
   // occaCompare<Real_t>(domain->yd, domain->tex_yd);
   // occaCompare<Real_t>(domain->zd, domain->tex_zd);
-#endif
+  //#endif
   // domain->xdd.resize(domNodes) ; /* accelerations */
   // domain->ydd.resize(domNodes) ;
   // domain->zdd.resize(domNodes) ;
@@ -1117,21 +1087,21 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
       z_h.resize(domNodes);
 
       nidx = 0 ;
-      tz = Real_t(0.0) ;
+      tz = ((Real_t) 0.0) ;
       for (Index_t plane=0; plane<edgeNodes; ++plane) {
-	ty = Real_t(0.0) ;
+	ty = ((Real_t) 0.0) ;
 	for (Index_t row=0; row<edgeNodes; ++row) {
-          tx = Real_t(0.0) ;
+          tx = ((Real_t) 0.0) ;
           for (Index_t col=0; col<edgeNodes; ++col) {
 	    x_h[nidx] = tx ;
 	    y_h[nidx] = ty ;
 	    z_h[nidx] = tz ;
 	    ++nidx ;
-	    tx = Real_t(1.125)*Real_t(col+1)/Real_t(nx) ;
+	    tx = ((Real_t) 1.125)*((Real_t) col+1)/((Real_t) nx) ;
           }
-          ty = Real_t(1.125)*Real_t(row+1)/Real_t(nx) ;
+          ty = ((Real_t) 1.125)*((Real_t) row+1)/((Real_t) nx) ;
 	}
-	tz = Real_t(1.125)*Real_t(plane+1)/Real_t(nx) ;
+	tz = ((Real_t) 1.125)*((Real_t) plane+1)/((Real_t) nx) ;
       }
 
       // domain->x = x_h;
@@ -1288,9 +1258,9 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
 
       /* deposit energy */
       domain->octantCorner = 0;
-      // domain->e[domain->octantCorner] = Real_t(3.948746e+7) ;
+      // domain->e[domain->octantCorner] = ((Real_t) 3.948746e+7) ;
 
-      Real_t val = Real_t(3.948746e+7);
+      Real_t val = ((Real_t) 3.948746e+7);
 
       domain->e.copyFrom(&val, sizeof(Real_t), 0);
     }
@@ -1329,9 +1299,9 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
       for (Index_t i=0; i<domNodes; ++i) {
 	double px, py, pz ;
 	fsuccess = fscanf(fp, "%lf %lf %lf", &px, &py, &pz) ;
-	x_h[i] = Real_t(px) ;
-	y_h[i] = Real_t(py) ;
-	z_h[i] = Real_t(pz) ;
+	x_h[i] = ((Real_t) px) ;
+	y_h[i] = ((Real_t) py) ;
+	z_h[i] = ((Real_t) pz) ;
       }
       // domain->x = x_h;
       // domain->y = y_h;
@@ -1519,8 +1489,8 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
       // domain->elemBC = elemBC_h;
       domain->elemBC.copyFrom(&(elemBC_h[0]));
       /* deposit energy */
-      //    domain->e[domain->octantCorner] = Real_t(3.948746e+7) ;
-      Real_t val = Real_t(3.948746e+7) ;
+      //    domain->e[domain->octantCorner] = ((Real_t) 3.948746e+7) ;
+      Real_t val = ((Real_t) 3.948746e+7) ;
 
       domain->e.copyFrom(&val, sizeof(Real_t), 0);
     }
@@ -1614,40 +1584,40 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
   *(domain->dtcourant_h)=1e20;
 
   /* initialize material parameters */
-  domain->deltatime_h = Real_t(1.0e-7) ;
-  domain->time_h      = Real_t(0.) ;
-  domain->dtfixed = Real_t(-1.0e-7) ;
-  domain->deltatimemultlb = Real_t(1.1) ;
-  domain->deltatimemultub = Real_t(1.2) ;
-  domain->stoptime  = Real_t(1.0e-2) ;
-  domain->dtmax     = Real_t(1.0e-2) ;
+  domain->deltatime_h = ((Real_t) 1.0e-7) ;
+  domain->time_h      = ((Real_t) 0.) ;
+  domain->dtfixed = ((Real_t) -1.0e-7) ;
+  domain->deltatimemultlb = ((Real_t) 1.1) ;
+  domain->deltatimemultub = ((Real_t) 1.2) ;
+  domain->stoptime  = ((Real_t) 1.0e-2) ;
+  domain->dtmax     = ((Real_t) 1.0e-2) ;
   domain->cycle   = 0 ;
 
-  domain->e_cut = Real_t(1.0e-7) ;
-  domain->p_cut = Real_t(1.0e-7) ;
-  domain->q_cut = Real_t(1.0e-7) ;
-  domain->u_cut = Real_t(1.0e-7) ;
-  domain->v_cut = Real_t(1.0e-10) ;
+  domain->e_cut = ((Real_t) 1.0e-7) ;
+  domain->p_cut = ((Real_t) 1.0e-7) ;
+  domain->q_cut = ((Real_t) 1.0e-7) ;
+  domain->u_cut = ((Real_t) 1.0e-7) ;
+  domain->v_cut = ((Real_t) 1.0e-10) ;
 
-  domain->hgcoef      = Real_t(3.0) ;
-  domain->ss4o3       = Real_t(4.0)/Real_t(3.0) ;
+  domain->hgcoef      = ((Real_t) 3.0) ;
+  domain->ss4o3       = ((Real_t) 4.0)/((Real_t) 3.0) ;
 
-  domain->qstop              =  Real_t(1.0e+12) ;
-  domain->monoq_max_slope    =  Real_t(1.0) ;
-  domain->monoq_limiter_mult =  Real_t(2.0) ;
-  domain->qlc_monoq          = Real_t(0.5) ;
-  domain->qqc_monoq          = Real_t(2.0)/Real_t(3.0) ;
-  domain->qqc                = Real_t(2.0) ;
+  domain->qstop              =  ((Real_t) 1.0e+12) ;
+  domain->monoq_max_slope    =  ((Real_t) 1.0) ;
+  domain->monoq_limiter_mult =  ((Real_t) 2.0) ;
+  domain->qlc_monoq          = ((Real_t) 0.5) ;
+  domain->qqc_monoq          = ((Real_t) 2.0)/((Real_t) 3.0) ;
+  domain->qqc                = ((Real_t) 2.0) ;
 
-  domain->pmin =  Real_t(0.) ;
-  domain->emin = Real_t(-1.0e+15) ;
+  domain->pmin =  ((Real_t) 0.) ;
+  domain->emin = ((Real_t) -1.0e+15) ;
 
-  domain->dvovmax =  Real_t(0.1) ;
+  domain->dvovmax =  ((Real_t) 0.1) ;
 
-  domain->eosvmax =  Real_t(1.0e+9) ;
-  domain->eosvmin =  Real_t(1.0e-9) ;
+  domain->eosvmax =  ((Real_t) 1.0e+9) ;
+  domain->eosvmin =  ((Real_t) 1.0e-9) ;
 
-  domain->refdens =  Real_t(1.0) ;
+  domain->refdens =  ((Real_t) 1.0) ;
 
   /* initialize field data */
   // Vector_h<Real_t> nodalMass_h(domNodes);
@@ -1674,7 +1644,7 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
     elemMass_h[i] = volume ;
     for (Index_t j=0; j<8; ++j) {
       Index_t gnode = nodelist_h[j*padded_domElems+i];
-      nodalMass_h[gnode] += volume / Real_t(8.0) ;
+      nodalMass_h[gnode] += volume / ((Real_t) 8.0) ;
 
       assert(nodalMass_h[gnode] > 0.);
     }
@@ -1721,23 +1691,23 @@ void TimeIncrement(Domain* domain){
   // cudaEventSynchronize(domain->time_constraint_computed);
   Real_t targetdt = domain->stoptime - domain->time_h;
 
-  if ((domain->dtfixed <= Real_t(0.0)) && (domain->cycle != Int_t(0))) {
+  if ((domain->dtfixed <= ((Real_t) 0.0)) && (domain->cycle != Int_t(0))) {
 
     Real_t ratio ;
 
     /* This will require a reduction in parallel */
-    Real_t newdt = Real_t(1.0e+20) ;
+    Real_t newdt = ((Real_t) 1.0e+20) ;
 
     if ( *(domain->dtcourant_h) < newdt) {
-      newdt = *(domain->dtcourant_h) / Real_t(2.0) ;
+      newdt = *(domain->dtcourant_h) / ((Real_t) 2.0) ;
     }
     if ( *(domain->dthydro_h) < newdt) {
-      newdt = *(domain->dthydro_h) * Real_t(2.0) / Real_t(3.0) ;
+      newdt = *(domain->dthydro_h) * ((Real_t) 2.0) / ((Real_t) 3.0) ;
     }
 
     Real_t olddt = domain->deltatime_h;
     ratio = newdt / olddt ;
-    if (ratio >= Real_t(1.0)) {
+    if (ratio >= ((Real_t) 1.0)) {
       if (ratio < domain->deltatimemultlb) {
 	newdt = olddt ;
       }
@@ -1754,8 +1724,8 @@ void TimeIncrement(Domain* domain){
 
   /* TRY TO PREVENT VERY SMALL SCALING ON THE NEXT CYCLE */
   if ((targetdt > domain->deltatime_h) &&
-      (targetdt < (Real_t(4.0) * domain->deltatime_h / Real_t(3.0))) ) {
-    targetdt = Real_t(2.0) * domain->deltatime_h / Real_t(3.0) ;
+      (targetdt < (((Real_t) 4.0) * domain->deltatime_h / ((Real_t) 3.0))) ) {
+    targetdt = ((Real_t) 2.0) * domain->deltatime_h / ((Real_t) 3.0) ;
   }
 
   if (targetdt < domain->deltatime_h) {
@@ -1775,7 +1745,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   Index_t numElem = domain->numElem ;
   Index_t padded_numElem = domain->padded_numElem;
 
-#ifdef DOUBLE_PRECISION
+  //#ifdef DOUBLE_PRECISION
   // Vector_d<Real_t>* fx_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
   // Vector_d<Real_t>* fy_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
   // Vector_d<Real_t>* fz_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
@@ -1788,15 +1758,15 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   // occa::memory fy_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
   // occa::memory fz_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
 
-#else
+  //#else
   // thrust::fill(domain->fx.begin(),domain->fx.end(),0.);
   // thrust::fill(domain->fy.begin(),domain->fy.end(),0.);
   // thrust::fill(domain->fz.begin(),domain->fz.end(),0.);
 
-  fill(domain->fx, 0.);
-  fill(domain->fy, 0.);
-  fill(domain->fz, 0.);
-#endif
+  // fill(domain->fx, 0.);
+  // fill(domain->fy, 0.);
+  // fill(domain->fz, 0.);
+  //#endif
 
   int num_threads = numElem ;
   const int block_size = 64;
@@ -1806,7 +1776,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   occa::dim inner(block_size);
   occa::dim outer(dimGrid);
 
-  bool hourg_gt_zero = hgcoef > Real_t(0.0);
+  bool hourg_gt_zero = hgcoef > ((Real_t) 0.0);
 
   if (hourg_gt_zero)
     {
@@ -1838,9 +1808,9 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 
       occa::memory bad_vol = occaMalloc(sizeof(Index_t), domain->bad_vol_h);
 
-      CalcVolumeForceForElems_kernel_true.setWorkingDims(dims, inner, outer);
+      CalcVolumeForceForElems_kernel.setWorkingDims(dims, inner, outer);
 
-      CalcVolumeForceForElems_kernel_true
+      CalcVolumeForceForElems_kernel
 	( domain->volo,
 	  domain->v,
 	  domain->p,
@@ -1850,17 +1820,17 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 	  domain->ss,
 	  domain->elemMass,
 	  domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
-#ifdef DOUBLE_PRECISION
+	  // #ifdef DOUBLE_PRECISION
 	  domain->fx_elem,
 	  domain->fy_elem,
 	  domain->fz_elem,
-#else
-	  domain->fx,
-	  domain->fy,
-	  domain->fz,
-#endif
+	  // #else
+	  // domain->fx,
+	  // domain->fy,
+	  // domain->fz,
+	  //#endif
 	  bad_vol,
-	  num_threads);
+	  num_threads, true);
 
       bad_vol.copyTo(domain->bad_vol_h);
 
@@ -1903,8 +1873,8 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 
       occa::memory bad_vol = occaMalloc(sizeof(Index_t), domain->bad_vol_h);
 
-      CalcVolumeForceForElems_kernel_false.setWorkingDims(dims, inner, outer);
-      CalcVolumeForceForElems_kernel_false
+      CalcVolumeForceForElems_kernel.setWorkingDims(dims, inner, outer);
+      CalcVolumeForceForElems_kernel
 	( domain->volo,
 	  domain->v,
 	  domain->p,
@@ -1914,17 +1884,17 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 	  domain->ss,
 	  domain->elemMass,
 	  domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
-#ifdef DOUBLE_PRECISION
+	  //#ifdef DOUBLE_PRECISION
 	  domain->fx_elem,
 	  domain->fy_elem,
 	  domain->fz_elem,
-#else
-	  domain->fx,
-	  domain->fy,
-	  domain->fz,
-#endif
+// #else
+// 	  domain->fx,
+// 	  domain->fy,
+// 	  domain->fz,
+// #endif
 	  bad_vol,
-	  num_threads);
+	  num_threads, false);
 
       bad_vol.copyTo(domain->bad_vol_h);
 
@@ -1933,7 +1903,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
       occaCheckDomain(domain);
     }
 
-#ifdef DOUBLE_PRECISION
+  //#ifdef DOUBLE_PRECISION
   num_threads = domain->numNode;
 
   // Launch boundary nodes first
@@ -1996,7 +1966,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   // fx_elem.free();
   // fy_elem.free();
   // fz_elem.free();
-#endif // ifdef DOUBLE_PRECISION
+  //#endif // ifdef DOUBLE_PRECISION
   return ;
 }
 
@@ -2289,7 +2259,7 @@ static inline
 void CalcMonotonicQRegionForElems(Domain *domain)
 {
 
-  const Real_t ptiny        = Real_t(1.e-36) ;
+  const Real_t ptiny        = ((Real_t) 1.e-36) ;
   Real_t monoq_max_slope    = domain->monoq_max_slope ;
   Real_t monoq_limiter_mult = domain->monoq_limiter_mult ;
 
@@ -2538,7 +2508,7 @@ static inline
 void CalcTimeConstraintsForElems(Domain* domain){
 
   Real_t qqc = domain->qqc;
-  Real_t qqc2 = Real_t(64.0) * qqc * qqc ;
+  Real_t qqc2 = ((Real_t) 64.0) * qqc * qqc ;
   Real_t dvovmax = domain->dvovmax ;
 
   const Index_t length = domain->numElem;
