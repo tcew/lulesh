@@ -6,12 +6,12 @@ CalcPositionAndVelocityForNodes_kernel(occaKernelInfoArg,
 				       const int occaVariable numNode,
 				       const Real_t occaVariable deltatime,
 				       const Real_t occaVariable u_cut,
-				       occaWriteOnly occaTexture1D(tex_x),
-				       occaWriteOnly occaTexture1D(tex_y),
-				       occaWriteOnly occaTexture1D(tex_z),
-				       occaWriteOnly occaTexture1D(tex_xd),
-				       occaWriteOnly occaTexture1D(tex_yd),
-				       occaWriteOnly occaTexture1D(tex_zd),
+				       occaPointer Real_t *occaRestrict tex_x,
+				       occaPointer Real_t *occaRestrict tex_y,
+				       occaPointer Real_t *occaRestrict tex_z,
+				       occaPointer Real_t *occaRestrict tex_xd,
+				       occaPointer Real_t *occaRestrict tex_yd,
+				       occaPointer Real_t *occaRestrict tex_zd,
 				       const occaPointer Real_t* occaRestrict xdd,
 				       const occaPointer Real_t* occaRestrict ydd,
 				       const occaPointer Real_t* occaRestrict zdd){
@@ -24,49 +24,21 @@ CalcPositionAndVelocityForNodes_kernel(occaKernelInfoArg,
       Real_t xdtmp, ydtmp, zdtmp, dt;
       dt = deltatime;
 
-      // xdtmp = xd[i] + xdd[i] * dt ;
-      // ydtmp = yd[i] + ydd[i] * dt ;
-      // zdtmp = zd[i] + zdd[i] * dt ;
-      occaTexGet1D(tex_xd, Real_t, xdtmp, i);
-      occaTexGet1D(tex_yd, Real_t, ydtmp, i);
-      occaTexGet1D(tex_zd, Real_t, zdtmp, i);
-
-      xdtmp += xdd[i]*dt;
-      ydtmp += ydd[i]*dt;
-      zdtmp += zdd[i]*dt;
+      xdtmp = tex_xd[i] + xdd[i] * dt ;
+      ydtmp = tex_yd[i] + ydd[i] * dt ;
+      zdtmp = tex_zd[i] + zdd[i] * dt ;
 
       if( FABS(xdtmp) < u_cut ) xdtmp = 0.0;
       if( FABS(ydtmp) < u_cut ) ydtmp = 0.0;
       if( FABS(zdtmp) < u_cut ) zdtmp = 0.0;
 
-      // x[i] += xdtmp * dt;
-      // y[i] += ydtmp * dt;
-      // z[i] += zdtmp * dt;
+      tex_x[i] += xdtmp * dt;
+      tex_y[i] += ydtmp * dt;
+      tex_z[i] += zdtmp * dt;
 
-      Real_t xtmp, ytmp, ztmp;
-      occaTexGet1D(tex_x, Real_t, xtmp, i);
-      occaTexGet1D(tex_y, Real_t, ytmp, i);
-      occaTexGet1D(tex_z, Real_t, ztmp, i);
-
-      xtmp += xdtmp*dt;
-      ytmp += ydtmp*dt;
-      ztmp += zdtmp*dt;
-
-      // x[i] = xtmp;
-      // y[i] = ytmp;
-      // z[i] = ztmp;
-
-      occaTexSet1D(tex_x, Real_t, xtmp, i);
-      occaTexSet1D(tex_y, Real_t, ytmp, i);
-      occaTexSet1D(tex_z, Real_t, ztmp, i);
-
-      // xd[i] = xdtmp;
-      // yd[i] = ydtmp;
-      // zd[i] = zdtmp;
-
-      occaTexSet1D(tex_xd, Real_t, xdtmp, i);
-      occaTexSet1D(tex_yd, Real_t, ydtmp, i);
-      occaTexSet1D(tex_zd, Real_t, zdtmp, i);
+      tex_xd[i] = xdtmp;
+      tex_yd[i] = ydtmp;
+      tex_zd[i] = zdtmp;
     }
   }
 }

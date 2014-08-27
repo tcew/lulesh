@@ -228,3 +228,24 @@ void CalcElemShapeFunctionDerivatives( const Real_t* const x,
   /* calculate jacobian determinant (volume) */
   *volume = ((Real_t)8.) * ( fjxet * cjxet + fjyet * cjyet + fjzet * cjzet);
 }
+
+
+
+#if OCCA_USING_OPENCL
+void atomic_add_global(volatile global float *source, const float operand) {
+  union {
+    unsigned int intVal;
+    float floatVal;
+  } newVal;
+  union {
+    unsigned int intVal;
+    float floatVal;
+  } prevVal;
+
+  do {
+    prevVal.floatVal = *source;
+    newVal.floatVal = prevVal.floatVal + operand;
+  } while (atomic_cmpxchg((volatile global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
+}
+
+#endif

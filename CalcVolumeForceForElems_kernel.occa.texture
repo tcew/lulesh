@@ -424,12 +424,12 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 				    const occaPointer Index_t* occaRestrict nodelist,
 				    const occaPointer Real_t* occaRestrict ss,
 				    const occaPointer Real_t* occaRestrict elemMass,
-				    const occaPointer Real_t *occaRestrict tex_x,
-				    const occaPointer Real_t *occaRestrict tex_y,
-				    const occaPointer Real_t *occaRestrict tex_z,
-				    const occaPointer Real_t *occaRestrict tex_xd,
-				    const occaPointer Real_t *occaRestrict tex_yd,
-				    const occaPointer Real_t *occaRestrict tex_zd,
+				    occaReadOnly occaTexture1D(tex_x),
+				    occaReadOnly occaTexture1D(tex_y),
+				    occaReadOnly occaTexture1D(tex_z),
+				    occaReadOnly occaTexture1D(tex_xd),
+				    occaReadOnly occaTexture1D(tex_yd),
+				    occaReadOnly occaTexture1D(tex_zd),
 #if DOUBLE_PRECISION // For floats, use atomicAdd
 				    occaPointer Real_t* occaRestrict fx_elem,
 				    occaPointer Real_t* occaRestrict fy_elem,
@@ -479,9 +479,23 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
       const Real_t volinv = ((Real_t)1.0) / det;
 #pragma unroll
       for (int i=0;i<8;i++) {
-	xn[i] = tex_x[n[i]];
-	yn[i] = tex_y[n[i]];
-	zn[i] = tex_z[n[i]];
+	// xn[i] =x[n[i]];
+	// yn[i] =y[n[i]];
+	// zn[i] =z[n[i]];
+#if DOUBLE_PRECISION
+	occaTexGet1D(tex_x, double, xn[i], n[i]);
+	occaTexGet1D(tex_y, double, yn[i], n[i]);
+	occaTexGet1D(tex_z, double, zn[i], n[i]);
+#else
+	occaTexGet1D(tex_x, float, xn[i], n[i]);
+	occaTexGet1D(tex_y, float, yn[i], n[i]);
+	occaTexGet1D(tex_z, float, zn[i], n[i]);
+
+
+	// xn[i] =x[n[i]];
+	// yn[i] =y[n[i]];
+	// zn[i] =z[n[i]];
+#endif
       }
 
       const Real_t volume13 = CBRT(det);
@@ -524,9 +538,24 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 
 #pragma unroll
 	for (int i=0;i<8;i++) {
-	  xdn[i] = tex_xd[n[i]];
-	  ydn[i] = tex_yd[n[i]];
-	  zdn[i] = tex_zd[n[i]];
+	  // xdn[i] =xd[n[i]];
+	  // ydn[i] =yd[n[i]];
+	  // zdn[i] =zd[n[i]];
+#if DOUBLE_PRECISION
+	  occaTexGet1D(tex_xd, double, xdn[i], n[i]);
+	  occaTexGet1D(tex_yd, double, ydn[i], n[i]);
+	  occaTexGet1D(tex_zd, double, zdn[i], n[i]);
+#else
+	  int id = n[i];
+	  occaTexGet1D(tex_xd, float, xdn[i], id);
+	  occaTexGet1D(tex_yd, float, ydn[i], id);
+	  occaTexGet1D(tex_zd, float, zdn[i], id);
+
+	  // xdn[i] =xd[n[i]];
+	  // ydn[i] =yd[n[i]];
+	  // zdn[i] =zd[n[i]];
+
+#endif
 	}
 
 	CalcElemFBHourglassForce
@@ -551,22 +580,20 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 	const Index_t ni= n[i];
 
 	// TODO: add atomics in occa
-#if OCCA_USING_CUDA
+#if occaCUDA
 	atomicAdd(&fx_node[ni],hgfx[i]);
 	atomicAdd(&fy_node[ni],hgfy[i]);
 	atomicAdd(&fz_node[ni],hgfz[i]);
-#elif OCCA_USING_OPENCL
-	atomic_add_global(fx_node+ni, hgfx[i]);
-	atomic_add_global(fy_node+ni, hgfy[i]);
-	atomic_add_global(fz_node+ni, hgfz[i]);
-#elif OCCA_USING_OPENMP || OCCA_USING_COI
+#elif occaOpenCL
+	atomic_add(fx_node+ni, hgfx[i]);
+	atomic_add(fy_node+ni, hgfy[i]);
+	atomic_add(fz_node+ni, hgfz[i]);
+#elif occaOpenMP || occaCOI
 
 #pragma omp atomic
-	fx_node[ni] = fx_node[ni] + hgfx[i];
-#pragma omp atomic
-	fy_node[ni] = fy_node[ni] + hgfy[i];
-#pragma omp atomic
-	fz_node[ni] = fz_node[ni] + hgfz[i];
+	fx_node[ni] += hgfx[i];
+	fy_node[ni] += hgfy[i];
+	fz_node[ni] += hgfz[i];
 #else
 	// DIE
 

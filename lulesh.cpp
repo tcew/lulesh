@@ -8,7 +8,7 @@
 #include <assert.h>
 
 #define LULESH_SHOW_PROGRESS 1
-//#define DOUBLE_PRECISION
+#define DOUBLE_PRECISION
 //#define SAMI
 
 enum {
@@ -761,7 +761,7 @@ static void occa_init(){
   int plat = 0;
   int dev = 0;
 
-  // occaHandle.setup("CUDA", plat, dev);
+  //  occaHandle.setup("CUDA", plat, dev);
   // occaHandle.setup("OpenCL", plat, dev);
   occaHandle.setup("OpenMP", plat, dev);
 
@@ -845,29 +845,27 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->tex_x = domain->x;
   // domain->tex_y = domain->y;
   // domain->tex_z = domain->z;
-#ifndef DOUBLE_PRECISION
-  std::vector<float> tempX(domNodes);
-  std::vector<float> tempY(domNodes);
-  std::vector<float> tempZ(domNodes);
 
-  std::vector<float> testX(domNodes);
-  std::vector<float> testY(domNodes);
-  std::vector<float> testZ(domNodes);
+  // std::vector<float> tempX(domNodes);
+  // std::vector<float> tempY(domNodes);
+  // std::vector<float> tempZ(domNodes);
 
-  domain->x.copyTo(&(tempX[0]));
-  domain->y.copyTo(&(tempY[0]));
-  domain->z.copyTo(&(tempZ[0]));
+  // domain->x.copyTo(&(tempX[0]));
+  // domain->y.copyTo(&(tempY[0]));
+  // domain->z.copyTo(&(tempZ[0]));
 
-  domain->tex_x = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readWrite);
-  domain->tex_y = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readWrite);
-  domain->tex_z = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readWrite);
+  // domain->tex_x = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readWrite);
+  // domain->tex_y = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readWrite);
+  // domain->tex_z = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readWrite);
 
+  domain->tex_x = occaMalloc(domNodes*sizeof(Real_t));
+  domain->tex_y = occaMalloc(domNodes*sizeof(Real_t));
+  domain->tex_z = occaMalloc(domNodes*sizeof(Real_t));
 
-  occaCompare<Real_t>(domain->x, domain->tex_x);
-  occaCompare<Real_t>(domain->y, domain->tex_y);
-  occaCompare<Real_t>(domain->z, domain->tex_z);
+  // occaCompare<Real_t>(domain->x, domain->tex_x);
+  // occaCompare<Real_t>(domain->y, domain->tex_y);
+  // occaCompare<Real_t>(domain->z, domain->tex_z);
 
-#endif
 
 
   // domain->xd.resize(domNodes) ; /* velocities */
@@ -886,18 +884,21 @@ void AllocateNodalPersistent(Domain* domain,
   // domain->tex_yd = domain->yd;
   // domain->tex_zd = domain->zd;
 #ifndef DOUBLE_PRECISION
-  domain->xd.copyTo(&(tempX[0]));
-  domain->yd.copyTo(&(tempY[0]));
-  domain->zd.copyTo(&(tempZ[0]));
+  // domain->xd.copyTo(&(tempX[0]));
+  // domain->yd.copyTo(&(tempY[0]));
+  // domain->zd.copyTo(&(tempZ[0]));
 
-  domain->tex_xd = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readWrite);
-  domain->tex_yd = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readWrite);
-  domain->tex_zd = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readWrite);
+  // domain->tex_xd = occaHandle.talloc(1, occa::dim(domNodes), &(tempX[0]), occa::floatFormat, occa::readWrite);
+  // domain->tex_yd = occaHandle.talloc(1, occa::dim(domNodes), &(tempY[0]), occa::floatFormat, occa::readWrite);
+  // domain->tex_zd = occaHandle.talloc(1, occa::dim(domNodes), &(tempZ[0]), occa::floatFormat, occa::readWrite);
 
+  domain->tex_xd = occaMalloc(domNodes*sizeof(Real_t));
+  domain->tex_yd = occaMalloc(domNodes*sizeof(Real_t));
+  domain->tex_zd = occaMalloc(domNodes*sizeof(Real_t));
 
-  occaCompare<Real_t>(domain->xd, domain->tex_xd);
-  occaCompare<Real_t>(domain->yd, domain->tex_yd);
-  occaCompare<Real_t>(domain->zd, domain->tex_zd);
+  // occaCompare<Real_t>(domain->xd, domain->tex_xd);
+  // occaCompare<Real_t>(domain->yd, domain->tex_yd);
+  // occaCompare<Real_t>(domain->zd, domain->tex_zd);
 #endif
   // domain->xdd.resize(domNodes) ; /* accelerations */
   // domain->ydd.resize(domNodes) ;
