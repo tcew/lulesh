@@ -8,7 +8,7 @@
 #include <assert.h>
 
 #define LULESH_SHOW_PROGRESS 1
-#define DOUBLE_PRECISION
+// #define DOUBLE_PRECISION
 //#define SAMI
 
 enum {
@@ -731,9 +731,9 @@ static void occa_init(){
   int plat = 0;
   int dev = 0;
 
-  // occaHandle.setup("CUDA", plat, dev);
+  occaHandle.setup("CUDA", plat, dev);
   // occaHandle.setup("OpenCL", plat, dev);
-  occaHandle.setup("OpenMP", plat, dev);
+  // occaHandle.setup("OpenMP", plat, dev);
 
   buildLuleshKernels();
 
@@ -1745,7 +1745,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   Index_t numElem = domain->numElem ;
   Index_t padded_numElem = domain->padded_numElem;
 
-  //#ifdef DOUBLE_PRECISION
+#ifdef DOUBLE_PRECISION
   // Vector_d<Real_t>* fx_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
   // Vector_d<Real_t>* fy_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
   // Vector_d<Real_t>* fz_elem = Allocator< Vector_d<Real_t> >::allocate(padded_numElem*8);
@@ -1758,15 +1758,15 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   // occa::memory fy_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
   // occa::memory fz_elem = occaMalloc(padded_numElem*8*sizeof(Real_t));
 
-  //#else
+#else
   // thrust::fill(domain->fx.begin(),domain->fx.end(),0.);
   // thrust::fill(domain->fy.begin(),domain->fy.end(),0.);
   // thrust::fill(domain->fz.begin(),domain->fz.end(),0.);
 
-  // fill(domain->fx, 0.);
-  // fill(domain->fy, 0.);
-  // fill(domain->fz, 0.);
-  //#endif
+  fill(domain->fx, 0.);
+  fill(domain->fy, 0.);
+  fill(domain->fz, 0.);
+#endif
 
   int num_threads = numElem ;
   const int block_size = 64;
@@ -1820,15 +1820,15 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 	  domain->ss,
 	  domain->elemMass,
 	  domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
-	  // #ifdef DOUBLE_PRECISION
+#ifdef DOUBLE_PRECISION
 	  domain->fx_elem,
 	  domain->fy_elem,
 	  domain->fz_elem,
-	  // #else
-	  // domain->fx,
-	  // domain->fy,
-	  // domain->fz,
-	  //#endif
+#else
+	  domain->fx,
+	  domain->fy,
+	  domain->fz,
+#endif
 	  bad_vol,
 	  num_threads, true);
 
@@ -1884,15 +1884,15 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 	  domain->ss,
 	  domain->elemMass,
 	  domain->tex_x, domain->tex_y, domain->tex_z, domain->tex_xd, domain->tex_yd, domain->tex_zd,
-	  //#ifdef DOUBLE_PRECISION
+#ifdef DOUBLE_PRECISION
 	  domain->fx_elem,
 	  domain->fy_elem,
 	  domain->fz_elem,
-// #else
-// 	  domain->fx,
-// 	  domain->fy,
-// 	  domain->fz,
-// #endif
+#else
+	  domain->fx,
+	  domain->fy,
+	  domain->fz,
+#endif
 	  bad_vol,
 	  num_threads, false);
 
@@ -1903,7 +1903,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
       occaCheckDomain(domain);
     }
 
-  //#ifdef DOUBLE_PRECISION
+#ifdef DOUBLE_PRECISION
   num_threads = domain->numNode;
 
   // Launch boundary nodes first
@@ -1966,7 +1966,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   // fx_elem.free();
   // fy_elem.free();
   // fz_elem.free();
-  //#endif // ifdef DOUBLE_PRECISION
+#endif // ifdef DOUBLE_PRECISION
   return ;
 }
 

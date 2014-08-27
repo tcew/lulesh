@@ -426,15 +426,15 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 				    const occaPointer Real_t *occaRestrict tex_xd,
 				    const occaPointer Real_t *occaRestrict tex_yd,
 				    const occaPointer Real_t *occaRestrict tex_zd,
-				    //#if DOUBLE_PRECISION // For floats, use atomicAdd
+#if DOUBLE_PRECISION // For floats, use atomicAdd
 				    occaPointer Real_t* occaRestrict fx_elem,
 				    occaPointer Real_t* occaRestrict fy_elem,
 				    occaPointer Real_t* occaRestrict fz_elem,
-				    // #else
-				    // 				    occaPointer Real_t* occaRestrict fx_node,
-				    // 				    occaPointer Real_t* occaRestrict fy_node,
-				    // 				    occaPointer Real_t* occaRestrict fz_node,
-				    // #endif
+#else
+				    occaPointer Real_t* occaRestrict fx_node,
+				    occaPointer Real_t* occaRestrict fy_node,
+				    occaPointer Real_t* occaRestrict fz_node,
+#endif
 				    occaPointer Index_t* occaRestrict bad_vol,
 				    const Index_t occaVariable num_threads,
 				    const int occaVariable hourg_gt_zero){
@@ -534,46 +534,46 @@ void CalcVolumeForceForElems_kernel(occaKernelInfoArg,
 	    &hgfx[0],&hgfy[0],&hgfz[0]);
       }
 
-      //#if DOUBLE_PRECISION
+#if DOUBLE_PRECISION
 #pragma unroll
-	for (int node=0;node<8;node++){
-	  const Index_t store_loc = elem+padded_numElem*node;
-	  fx_elem[store_loc]=hgfx[node];
-	  fy_elem[store_loc]=hgfy[node];
-	  fz_elem[store_loc]=hgfz[node];
-	}
-	// #else
-	// #pragma unroll
-	//       for (int i=0;i<8;i++){
-	// 	const Index_t ni= n[i];
+      for (int node=0;node<8;node++){
+	const Index_t store_loc = elem+padded_numElem*node;
+	fx_elem[store_loc]=hgfx[node];
+	fy_elem[store_loc]=hgfy[node];
+	fz_elem[store_loc]=hgfz[node];
+      }
+#else
+#pragma unroll
+      for (int i=0;i<8;i++){
+	const Index_t ni= n[i];
 
-	// 	// TODO: add atomics in occa
-	// #if OCCA_USING_CUDA
-	// 	atomicAdd(&fx_node[ni],hgfx[i]);
-	// 	atomicAdd(&fy_node[ni],hgfy[i]);
-	// 	atomicAdd(&fz_node[ni],hgfz[i]);
-	// #elif OCCA_USING_OPENCL
-	// 	atomic_add_global(fx_node+ni, hgfx[i]);
-	// 	atomic_add_global(fy_node+ni, hgfy[i]);
-	// 	atomic_add_global(fz_node+ni, hgfz[i]);
-	// #elif OCCA_USING_OPENMP || OCCA_USING_COI
+	// TODO: add atomics in occa
+#if OCCA_USING_CUDA
+	atomicAdd(&fx_node[ni],hgfx[i]);
+	atomicAdd(&fy_node[ni],hgfy[i]);
+	atomicAdd(&fz_node[ni],hgfz[i]);
+#elif OCCA_USING_OPENCL
+	atomic_add_global(fx_node+ni, hgfx[i]);
+	atomic_add_global(fy_node+ni, hgfy[i]);
+	atomic_add_global(fz_node+ni, hgfz[i]);
+#elif OCCA_USING_OPENMP || OCCA_USING_COI
 
-	// #pragma omp atomic
-	// 	fx_node[ni] = fx_node[ni] + hgfx[i];
-	// #pragma omp atomic
-	// 	fy_node[ni] = fy_node[ni] + hgfy[i];
-	// #pragma omp atomic
-	// 	fz_node[ni] = fz_node[ni] + hgfz[i];
-	// #else
-	// 	// DIE
+#pragma omp atomic
+	fx_node[ni] = fx_node[ni] + hgfx[i];
+#pragma omp atomic
+	fy_node[ni] = fy_node[ni] + hgfy[i];
+#pragma omp atomic
+	fz_node[ni] = fz_node[ni] + hgfz[i];
+#else
+	// DIE
 
-	// #endif
-	// 	// occaAtomicAdd(fx_node[ni], hgfx[i]);
-	// 	// occaAtomicAdd(fy_node[ni], hgfy[i]);
-	// 	// occaAtomicAdd(fz_node[ni], hgfz[i]);
-	//       }
-	// #endif
+#endif
+	// occaAtomicAdd(fx_node[ni], hgfx[i]);
+	// occaAtomicAdd(fy_node[ni], hgfy[i]);
+	// occaAtomicAdd(fz_node[ni], hgfz[i]);
+      }
+#endif
 
-	  } // If elem < numElem
+    } // If elem < numElem
   }
 }

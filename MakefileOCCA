@@ -30,4 +30,4 @@ luleshOCCA: lulesh.cpp
 	$(CXX) $(flags) lulesh.cpp -o luleshOCCA $(libs)
 
 clean:
-	rm -rf allocator.o  lulesh
+	rm -rf luleshOCCA
