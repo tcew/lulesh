@@ -9,9 +9,9 @@
 #else
 
 #define SQRT(arg) occaFastSqrt(arg)
-#define CBRT(arg) cbrtf(arg)
-#define FABS(arg) fabsf(arg)
-#define FMAX(arg1, arg2) fmaxf(arg1, arg2)
+#define CBRT(arg) cbrt(arg)
+#define FABS(arg) fabs(arg)
+#define FMAX(arg1, arg2) fmax(arg1, arg2)
 
 #endif
 

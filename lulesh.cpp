@@ -8,7 +8,7 @@
 #include <assert.h>
 
 #define LULESH_SHOW_PROGRESS 1
-// #define DOUBLE_PRECISION
+#define DOUBLE_PRECISION
 //#define SAMI
 
 enum {
@@ -728,11 +728,12 @@ static void buildLuleshKernels(){
 
 static void occa_init(){
 
-  int plat = 0;
-  int dev = 0;
+  int plat = 1;
+  int dev = 1;
 
-  occaHandle.setup("CUDA", plat, dev);
-  // occaHandle.setup("OpenCL", plat, dev);
+  occa::availableDevices<occa::OpenCL>();
+  // occaHandle.setup("CUDA", plat, dev);
+  occaHandle.setup("OpenCL", plat, dev);
   // occaHandle.setup("OpenMP", plat, dev);
 
   buildLuleshKernels();

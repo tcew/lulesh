@@ -367,10 +367,10 @@ void CalcKinematicsAndMonotonicQGradient_kernel(occaKernelInfoArg,
 	dyy[k] = D[1] - vdovthird ;
 	dzz[k] = D[2] - vdovthird ;
 
-	// ------------------------
-	// CALC MONOTONIC Q GRADIENT
-	// ------------------------
-	Real_t vol = volo[k]*vnew[k];
+// 	// ------------------------
+// 	// CALC MONOTONIC Q GRADIENT
+// 	// ------------------------
+ 	Real_t vol = volo[k]*vnew[k];
 
 	// Undo x_local update
 #pragma unroll

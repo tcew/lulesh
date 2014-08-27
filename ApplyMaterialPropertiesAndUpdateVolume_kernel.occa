@@ -345,7 +345,7 @@ ApplyMaterialPropertiesAndUpdateVolume_kernel(occaKernelInfoArg,
       Index_t zidx  = matElemlist[i] ;
 
       ApplyMaterialPropertiesForElems_device
-	(eosvmin,eosvmax,vnew,v,&vnewc,bad_vol,i,zidx);
+    	(eosvmin,eosvmax,vnew,v,&vnewc,bad_vol,i,zidx);
 
       e_old = e[zidx];
       delvc = delv[zidx];
@@ -358,16 +358,16 @@ ApplyMaterialPropertiesAndUpdateVolume_kernel(occaKernelInfoArg,
       compHalfStep = ((Real_t)1.) / vchalf - ((Real_t)1.);
 
       if ( eosvmin != ((Real_t)0.) ) {
-	if (vnewc <= eosvmin) { /* impossible due to calling func? */
-	  compHalfStep = compression ;
-	}
+    	if (vnewc <= eosvmin) { /* impossible due to calling func? */
+    	  compHalfStep = compression ;
+    	}
       }
       if ( eosvmax != ((Real_t)0.) ) {
-	if (vnewc >= eosvmax) { /* impossible due to calling func? */
-	  p_old        = ((Real_t)0.) ;
-	  compression  = ((Real_t)0.) ;
-	  compHalfStep = ((Real_t)0.) ;
-	}
+    	if (vnewc >= eosvmax) { /* impossible due to calling func? */
+    	  p_old        = ((Real_t)0.) ;
+    	  compression  = ((Real_t)0.) ;
+    	  compHalfStep = ((Real_t)0.) ;
+    	}
       }
 
       qq_old = qq[zidx] ;
@@ -375,17 +375,17 @@ ApplyMaterialPropertiesAndUpdateVolume_kernel(occaKernelInfoArg,
       work = ((Real_t)0.) ;
 
       CalcEnergyForElems_device(&p_new, &e_new, &q_new, &bvc, &pbvc,
-				p_old, e_old,  q_old, compression, compHalfStep,
-				vnewc, work,  delvc, pmin,
-				p_cut, e_cut, q_cut, emin,
-				qq_old, ql_old, rho0, eosvmax, length);
+    				p_old, e_old,  q_old, compression, compHalfStep,
+    				vnewc, work,  delvc, pmin,
+    				p_cut, e_cut, q_cut, emin,
+    				qq_old, ql_old, rho0, eosvmax, length);
 
       p[zidx] = p_new ;
       e[zidx] = e_new ;
       q[zidx] = q_new ;
 
       CalcSoundSpeedForElems_device
-	(vnewc,rho0,e_new,p_new,pbvc,bvc,ss4o3,length,ss,i,zidx);
+    	(vnewc,rho0,e_new,p_new,pbvc,bvc,ss4o3,length,ss,i,zidx);
 
       UpdateVolumesForElems_device(length,v_cut,vnew,v,i);
 
