@@ -11,6 +11,8 @@
 #define DOUBLE_PRECISION
 //#define SAMI
 
+const int max_dimGrid = 256;
+
 enum {
   VolumeError = -1,
   QStopError = -2,
@@ -600,7 +602,7 @@ static void buildLuleshKernels(){
 
   {
 
-    const int max_dimGrid = 1024;
+    //    const int max_dimGrid = 1024;
     occa::kernelInfo defs1 = defs;
 
     defs1.addDefine("block_size", max_dimGrid);
@@ -695,7 +697,7 @@ static void buildLuleshKernels(){
 
   {
 
-    const int max_dimGrid = 1024;
+    //    const int max_dimGrid = 1024;
     occa::kernelInfo defs1 = defs;
 
     defs1.addDefine("block_size", max_dimGrid);
@@ -728,12 +730,12 @@ static void buildLuleshKernels(){
 
 static void occa_init(){
 
-  int plat = 0;
-  int dev = 0;
+  int plat = 1;
+  int dev = 1;
 
   // occa::availableDevices<occa::OpenCL>();
-  occaHandle.setup("CUDA", plat, dev);
-  // occaHandle.setup("OpenCL", plat, dev);
+  // occaHandle.setup("CUDA", plat, dev);
+  occaHandle.setup("OpenCL", plat, dev);
   // occaHandle.setup("OpenMP", plat, dev);
 
   buildLuleshKernels();
@@ -2554,7 +2556,7 @@ void CalcTimeConstraintsForElems(Domain* domain){
 
   const Index_t length = domain->numElem;
 
-  const int max_dimGrid = 1024;
+  //  const int max_dimGrid = 1024;
   const int dimBlock = 128;
   int dimGrid=std::min(max_dimGrid,PAD_DIV(length,dimBlock));
 
