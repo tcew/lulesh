@@ -730,10 +730,10 @@ static void buildLuleshKernels(){
 
 static void occa_init(){
 
-  int plat = 1;
-  int dev = 1;
+  int plat = 0;
+  int dev = 2;
 
-  // occa::availableDevices<occa::OpenCL>();
+  //occa::availableDevices<occa::OpenCL>();
   // occaHandle.setup("CUDA", plat, dev);
   occaHandle.setup("OpenCL", plat, dev);
   // occaHandle.setup("OpenMP", plat, dev);
@@ -759,9 +759,9 @@ occa::memory occaMalloc(const size_t nbytes,
     *a = occaHandle.malloc(nbytes);
 
     size_t dim = 1;
-    occa::dim inner(256);
+    occa::dim inner(max_dimGrid);
 
-    int nblocks = (nbytes + 255)/256;
+    int nblocks = (nbytes + max_dimGrid-1)/max_dimGrid;
 
     if(nblocks > MAX_THREAD_BLOCKS)
       nblocks = MAX_THREAD_BLOCKS;
@@ -779,8 +779,7 @@ occa::memory occaMalloc(const size_t nbytes,
 
 void fill(occa::memory &a, Real_t val){
 
-  // TODO:
-  const int block_size = 256;
+  const int block_size = max_dimGrid;
   const int n = a.bytes()/sizeof(Real_t);
 
   if(n){
