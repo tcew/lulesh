@@ -29,5 +29,8 @@ endif
 luleshOCCA: lulesh.cpp
 	$(CXX) $(flags) lulesh.cpp -o luleshOCCA $(libs)
 
+compareResults: compareResults.cpp
+	$(CXX) compareResults.cpp -o compareResults -lm
+
 clean:
-	rm -rf luleshOCCA
+	rm -rf luleshOCCA compareResults
