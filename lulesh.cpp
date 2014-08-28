@@ -728,12 +728,12 @@ static void buildLuleshKernels(){
 
 static void occa_init(){
 
-  int plat = 1;
-  int dev = 1;
+  int plat = 0;
+  int dev = 0;
 
-  occa::availableDevices<occa::OpenCL>();
-  // occaHandle.setup("CUDA", plat, dev);
-  occaHandle.setup("OpenCL", plat, dev);
+  // occa::availableDevices<occa::OpenCL>();
+  occaHandle.setup("CUDA", plat, dev);
+  // occaHandle.setup("OpenCL", plat, dev);
   // occaHandle.setup("OpenMP", plat, dev);
 
   buildLuleshKernels();
@@ -1764,11 +1764,15 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   // thrust::fill(domain->fy.begin(),domain->fy.end(),0.);
   // thrust::fill(domain->fz.begin(),domain->fz.end(),0.);
 
+  occa::tic("fill");
   fill(domain->fx, 0.);
   fill(domain->fy, 0.);
   fill(domain->fz, 0.);
+  occa::toc("fill");
 #endif
 
+
+  occa::tic("volume force kernel");
   int num_threads = numElem ;
   const int block_size = 64;
   int dimGrid = PAD_DIV(num_threads,block_size);
@@ -1904,6 +1908,8 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
       occaCheckDomain(domain);
     }
 
+  occa::toc("volume force kernel", CalcVolumeForceForElems_kernel);
+
 #ifdef DOUBLE_PRECISION
   num_threads = domain->numNode;
 
@@ -1925,6 +1931,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   //   num_threads
   // );
 
+  occa::tic("add node forces kernel");
   occaCheck<Real_t>(domain->fx_elem);
   occaCheck<Real_t>(domain->fy_elem);
   occaCheck<Real_t>(domain->fz_elem);
@@ -1953,6 +1960,8 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
 
   occaCheck<Real_t>(domain->fx);
   occaCheck<Real_t>(domain->fy);
+
+  occa::toc("add node forces kernel", AddNodeForcesFromElems_kernel);
   //cudaDeviceSynchronize();
   //cudaCheckError();
 
@@ -2007,6 +2016,8 @@ void CalcAccelerationForNodes(Domain *domain)
   Index_t dimBlock = 128;
   Index_t dimGrid = PAD_DIV(domain->numNode,dimBlock);
 
+
+  occa::tic("node forces kernel");
   size_t dims = 1;
   occa::dim inner(dimBlock);
   occa::dim outer(dimGrid);
@@ -2034,6 +2045,7 @@ void CalcAccelerationForNodes(Domain *domain)
      domain->fz,
      domain->nodalMass);
 
+  occa::toc("node forces kernel", CalcAccelerationForNodes_kernel);
   //cudaDeviceSynchronize();
   //cudaCheckError();
 }
@@ -2046,6 +2058,7 @@ void ApplyAccelerationBoundaryConditionsForNodes(Domain *domain)
 
   Index_t dimGrid = PAD_DIV(domain->numSymmX,dimBlock);
 
+  occa::tic("acceleration bc kernel");
   size_t dims = 1;
   occa::dim inner(dimBlock);
   occa::dim outer(dimGrid);
@@ -2063,7 +2076,9 @@ void ApplyAccelerationBoundaryConditionsForNodes(Domain *domain)
      domain->xdd,
      domain->symmX);
 
+  occa::toc("acceleration bc kernel", ApplyAccelerationBoundaryConditionsForNodes_kernel);
 
+  occa::tic("acceleration bc kernel");
   dimGrid = PAD_DIV(domain->numSymmY,dimBlock);
   outer.x = dimGrid;
 
@@ -2078,6 +2093,9 @@ void ApplyAccelerationBoundaryConditionsForNodes(Domain *domain)
      domain->ydd,
      domain->symmY);
 
+  occa::toc("acceleration bc kernel", ApplyAccelerationBoundaryConditionsForNodes_kernel);
+
+  occa::tic("acceleration bc kernel");
   dimGrid = PAD_DIV(domain->numSymmZ,dimBlock);
   outer.x = dimGrid;
   // ApplyAccelerationBoundaryConditionsForNodes_kernel<<<dimGrid, dimBlock>>>
@@ -2090,6 +2108,8 @@ void ApplyAccelerationBoundaryConditionsForNodes(Domain *domain)
     (domain->numSymmZ,
      domain->zdd,
      domain->symmZ);
+
+  occa::toc("acceleration bc kernel", ApplyAccelerationBoundaryConditionsForNodes_kernel);
 }
 
 
@@ -2100,6 +2120,7 @@ void CalcPositionAndVelocityForNodes(const Real_t u_cut, Domain* domain)
   Index_t dimBlock = 128;
   Index_t dimGrid = PAD_DIV(domain->numNode,dimBlock);
 
+  occa::tic("pos n vel kernel");
   size_t dims = 1;
   occa::dim inner(dimBlock);
   occa::dim outer(dimGrid);
@@ -2133,6 +2154,7 @@ void CalcPositionAndVelocityForNodes(const Real_t u_cut, Domain* domain)
      domain->ydd,
      domain->zdd);
 
+  occa::toc("pos n vel kernel", CalcPositionAndVelocityForNodes_kernel);
   //cudaDeviceSynchronize();
   //cudaCheckError();
 }
@@ -2143,27 +2165,38 @@ void LagrangeNodal(Domain *domain)
 
   Real_t u_cut = domain->u_cut ;
 
+  occa::tic("calc force nodes");
   occaCheckDomain(domain);
 
   CalcForceForNodes(domain);
+  occa::toc("calc force nodes");
 
+  occa::tic("calc time increment");
   occaCheckDomain(domain);
 
   TimeIncrement(domain);
+  occa::toc("calc time increment");
 
+  occa::tic("calc acceleration");
   occaCheckDomain(domain);
 
   CalcAccelerationForNodes(domain);
+  occa::toc("calc acceleration");
 
+  occa::tic("acceleration bcs");
   occaCheckDomain(domain);
 
   ApplyAccelerationBoundaryConditionsForNodes(domain);
+  occa::toc("acceleration bcs");
 
+  occa::tic("position and velocity");
   occaCheckDomain(domain);
 
   CalcPositionAndVelocityForNodes(u_cut, domain);
 
   occaCheckDomain(domain);
+  occa::toc("position and velocity");
+
   return;
 }
 
@@ -2447,9 +2480,11 @@ void LagrangeElements(Domain *domain)
   /*********************************************/
   /*  Calc Kinematics and Monotic Q Gradient   */
   /*********************************************/
+  occa::tic("kinematics n monotonic Q grad");
   occaCheckDomain(domain);
   CalcKinematicsAndMonotonicQGradient(domain);
   occaCheckDomain(domain);
+  occa::toc("kinematics n monotonic Q grad");
 
   // Allocator<Vector_d<Real_t> >::free(domain->dxx,domain->numElem);
   // Allocator<Vector_d<Real_t> >::free(domain->dyy,domain->numElem);
@@ -2468,12 +2503,15 @@ void LagrangeElements(Domain *domain)
   /* problem->commElements->Transfer(CommElements::monoQ) ;  */
   /***********************************************************/
 
+  occa::tic("monotonic Q region");
   /**********************************
    *    Calc Monotic Q Region
    **********************************/
   occaCheckDomain(domain);
   CalcMonotonicQRegionForElems(domain);
   occaCheckDomain(domain);
+  occa::toc("monotonic Q region");
+
   // Allocator<Vector_d<Real_t> >::free(domain->delx_xi,domain->numElem);
   // Allocator<Vector_d<Real_t> >::free(domain->delx_eta,domain->numElem);
   // Allocator<Vector_d<Real_t> >::free(domain->delx_zeta,domain->numElem);
@@ -2495,9 +2533,11 @@ void LagrangeElements(Domain *domain)
   // domain->delv_eta.free();
   // domain->delv_zeta.free();
 
+  occa::tic("update volume");
   occaCheckDomain(domain);
   ApplyMaterialPropertiesAndUpdateVolume(domain) ;
   occaCheckDomain(domain);
+  occa::toc("update volume");
   //  Allocator<Vector_d<Real_t> >::free(domain->vnew,domain->numElem);
   // Allocator<occa::memory >::free(domain->vnew,domain->numElem);
   // domain->vnew.free();
@@ -2528,6 +2568,8 @@ void CalcTimeConstraintsForElems(Domain* domain){
   // Vector_d<Real_t>* dev_mindtcourant= Allocator< Vector_d<Real_t> >::allocate(dimGrid);
   // Vector_d<Real_t>* dev_mindthydro  = Allocator< Vector_d<Real_t> >::allocate(dimGrid);
 
+  occa::tic("time constraints kernel");
+
   // occa::memory* dev_mindtcourant= Allocator< occa::memory >::allocate(dimGrid);
   // occa::memory* dev_mindthydro  = Allocator< occa::memory >::allocate(dimGrid);
   occa::memory dev_mindtcourant = occaMalloc(dimGrid*sizeof(Real_t));
@@ -2554,9 +2596,14 @@ void CalcTimeConstraintsForElems(Domain* domain){
      dev_mindthydro);
 
   occaCheckDomain(domain);
+
+  occa::toc("time constraints kernel", CalcTimeConstraintsForElems_kernel);
+
   // TODO: if dimGrid < 1024, should launch less threads
   // CalcMinDtOneBlock<max_dimGrid> <<<2,max_dimGrid, max_dimGrid*sizeof(Real_t), domain->streams[1]>>>(dev_mindthydro->raw(),dev_mindtcourant->raw(),domain->dtcourant_h,domain->dthydro_h, dimGrid);
 
+
+  occa::tic("min Dt kernel");
   dims = 1;
   inner.x = max_dimGrid;
   outer.x = 2;
@@ -2592,6 +2639,7 @@ void CalcTimeConstraintsForElems(Domain* domain){
   dtcourant_d.free();
   dthydro_d.free();
 
+  occa::toc("min Dt kernel", CalcMinDtOneBlock);
 }
 
 
@@ -2601,14 +2649,19 @@ void LagrangeLeapFrog(Domain* domain)
 
   /* calculate nodal forces, accelerations, velocities, positions, with
    * applied boundary conditions and slide surface considerations */
+  occa::tic("lagrange nodal");
   LagrangeNodal(domain);
-
+  occa::toc("lagrange nodal");
 
   /* calculate element quantities (i.e. velocity gradient & q), and update
    * material states */
+  occa::tic("lagrange elements");
   LagrangeElements(domain);
+  occa::toc("lagrange elements");
 
+  occa::tic("time constraints");
   CalcTimeConstraintsForElems(domain);
+  occa::toc("time constraints");
 
 }
 
@@ -2794,8 +2847,11 @@ int main(int argc, char *argv[])
 
   bool structured = ( strcmp(argv[1],"-s") == 0 );
 
+  occa::tic("initialization");
   // cuda_init();
   occa_init();
+
+  occa::initTimer(occaHandle);
 
   printf("OCCA device and kernels are initialized \n");
 
@@ -2816,18 +2872,24 @@ int main(int argc, char *argv[])
   else
     printf("Running until t=%f, Problem size=%d \n",locDom->stoptime,locDom->numElem);
 
+  occa::toc("initialization");
+
   // cudaEvent_t timer_start, timer_stop;
   // cudaEventCreate(&timer_start);
   // cudaEventCreate(&timer_stop);
   // cudaEventRecord( timer_start );
   double timer_start = occa::currentTime();
 
+  occa::tic("time stepping");
+
   while(locDom->time_h < locDom->stoptime)
     {
       // Time increment has been moved after computation of volume forces to hide launch latencies
       //TimeIncrement(locDom) ;
 
+      occa::tic("lagrange leap frog");
       LagrangeLeapFrog(locDom) ;
+      occa::toc("lagrange leap frog");
 
       checkErrors(locDom,its);
 
@@ -2839,6 +2901,7 @@ int main(int argc, char *argv[])
 
   double timer_stop = occa::currentTime();
 
+  occa::toc("time stepping");
   // float elapsed_time;
   // // cudaEventRecord( timer_stop );
   // // cudaEventSynchronize( timer_stop);
@@ -2846,6 +2909,9 @@ int main(int argc, char *argv[])
   // elapsed_time*=1.e-3f;
 
   double elapsed_time = timer_stop - timer_start;
+
+
+  occa::printTimer();
 
 
   printf("Run completed:  \n");
