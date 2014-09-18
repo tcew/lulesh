@@ -8,7 +8,7 @@
 #include <assert.h>
 
 #define LULESH_SHOW_PROGRESS 1
-#define DOUBLE_PRECISION
+//#define DOUBLE_PRECISION
 //#define SAMI
 
 const int max_dimGrid = 256;
@@ -1172,6 +1172,7 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
       // domain->symmX = symmX_h;
       // domain->symmY = symmY_h;
       // domain->symmZ = symmZ_h;
+
       domain->symmX.copyFrom(&(symmX_h[0]));
       domain->symmY.copyFrom(&(symmY_h[0]));
       domain->symmZ.copyFrom(&(symmZ_h[0]));
@@ -1280,6 +1281,9 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
       domain->numNode = Index_t(en);
       domain->padded_numNode = PAD(domain->numNode,32);
 
+      domain->sizeX = 0;
+      domain->sizeY = 0;
+
       domElems = domain->numElem ;
       domNodes = domain->numNode ;
       padded_domElems = domain->padded_numElem ;
@@ -1376,7 +1380,8 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
 	symmX_h[i] = Index_t(n) ;
       }
       // domain->symmX = symmX_h;
-      domain->symmX.copyFrom(&(symmX_h[0]));
+      //    domain->symmX.copyFrom(&(symmX_h[0]));
+      domain->symmX = occaMalloc(domain->numSymmX*sizeof(Index_t), &(symmX_h[0]));
 
       fsuccess = fscanf(fp, "%d", &domain->numSymmY) ;
       // Vector_h<Index_t> symmY_h(domain->numSymmY);
@@ -1387,7 +1392,8 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
 	symmY_h[i] = Index_t(n) ;
       }
       // domain->symmY = symmY_h;
-      domain->symmY.copyFrom(&(symmY_h[0]));
+      // domain->symmY.copyFrom(&(symmY_h[0]));
+      domain->symmY = occaMalloc(domain->numSymmY*sizeof(Index_t), &(symmY_h[0]));
 
       fsuccess = fscanf(fp, "%d", &domain->numSymmZ) ;
       // Vector_h<Index_t> symmZ_h(domain->numSymmZ);
@@ -1398,7 +1404,9 @@ Domain *NewDomain(char* argv[], Index_t nx, bool structured)
 	symmZ_h[i] = Index_t(n) ;
       }
       // domain->symmZ = symmZ_h;
-      domain->symmZ.copyFrom(&(symmZ_h[0]));
+      // domain->symmZ.copyFrom(&(symmZ_h[0]));
+      domain->symmZ = occaMalloc(domain->numSymmZ*sizeof(Index_t), &(symmZ_h[0]));
+
       /* set up free surface nodeset */
       Index_t numFreeSurf;
       fsuccess = fscanf(fp, "%d", &numFreeSurf) ;
@@ -1779,6 +1787,7 @@ void CalcVolumeForceForElems(const Real_t hgcoef,Domain *domain)
   occa::dim outer(dimGrid);
 
   bool hourg_gt_zero = hgcoef > ((Real_t) 0.0);
+
 
   if (hourg_gt_zero)
     {
