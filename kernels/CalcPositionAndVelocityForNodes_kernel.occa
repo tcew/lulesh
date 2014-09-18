@@ -1,5 +1,5 @@
 
-#include<kernelDefines.occa>
+#include<kernels/kernelDefines.occa>
 
 occaKernel void
 CalcPositionAndVelocityForNodes_kernel(occaKernelInfoArg,

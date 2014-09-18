@@ -1,4 +1,4 @@
-#include<kernelDefines.occa>
+#include<kernels/kernelDefines.occa>
 
 occaKernel
 void CalcMonotonicQRegionForElems_kernel(occaKernelInfoArg,

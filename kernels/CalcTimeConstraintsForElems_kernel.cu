@@ -1,4 +1,4 @@
-#include<kernelDefines.cu>
+#include<kernels/kernelDefines.cu>
 
 extern "C" __global__
 #ifdef DOUBLE_PRECISION

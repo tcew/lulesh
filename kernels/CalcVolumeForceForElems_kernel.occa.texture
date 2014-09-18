@@ -1,4 +1,4 @@
-#include<kernelDefines.occa>
+#include<kernels/kernelDefines.occa>
 
 occaDeviceFunction void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8], const Real_t zn[8],
 					   const Real_t dvdxn[8], const Real_t dvdyn[8], const Real_t dvdzn[8],

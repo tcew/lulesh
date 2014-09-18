@@ -1,4 +1,4 @@
-#include<kernelDefines.occa>
+#include<kernels/kernelDefines.occa>
 
 occaDeviceFunction
 void CalcMonoGradient(Real_t *x, Real_t *y, Real_t *z,

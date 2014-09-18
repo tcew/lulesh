@@ -552,38 +552,38 @@ static void buildLuleshKernels(){
 
   AddNodeForcesFromElems_kernel =
     occaHandle.buildKernelFromSource
-    ("AddNodeForcesFromElems_kernel.cu",
+    ("kernels/AddNodeForcesFromElems_kernel.cu",
      "AddNodeForcesFromElems_kernel", defs);
 
   CalcAccelerationForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcAccelerationForNodes_kernel.cu",
+    ("kernels/CalcAccelerationForNodes_kernel.cu",
      "CalcAccelerationForNodes_kernel", defs);
 
   ApplyAccelerationBoundaryConditionsForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("ApplyAccelerationBoundaryConditionsForNodes_kernel.cu",
+    ("kernels/ApplyAccelerationBoundaryConditionsForNodes_kernel.cu",
      "ApplyAccelerationBoundaryConditionsForNodes_kernel",
      defs);
 
   CalcPositionAndVelocityForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcPositionAndVelocityForNodes_kernel.cu",
+    ("kernels/CalcPositionAndVelocityForNodes_kernel.cu",
      "CalcPositionAndVelocityForNodes_kernel", defs);
 
   CalcKinematicsAndMonotonicQGradient_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcKinematicsAndMonotonicQGradient_kernel.cu",
+    ("kernels/CalcKinematicsAndMonotonicQGradient_kernel.cu",
      "CalcKinematicsAndMonotonicQGradient_kernel", defs);
 
   CalcMonotonicQRegionForElems_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcMonotonicQRegionForElems_kernel.cu",
+    ("kernels/CalcMonotonicQRegionForElems_kernel.cu",
      "CalcMonotonicQRegionForElems_kernel", defs);
 
   ApplyMaterialPropertiesAndUpdateVolume_kernel =
     occaHandle.buildKernelFromSource
-    ("ApplyMaterialPropertiesAndUpdateVolume_kernel.cu",
+    ("kernels/ApplyMaterialPropertiesAndUpdateVolume_kernel.cu",
      "ApplyMaterialPropertiesAndUpdateVolume_kernel", defs);
 
   const int simdWidth = 32;
@@ -596,7 +596,7 @@ static void buildLuleshKernels(){
     defs1.addDefine("simdWidth", simdWidth);
     CalcTimeConstraintsForElems_kernel =
       occaHandle.buildKernelFromSource
-      ("CalcTimeConstraintsForElems_kernel.cu",
+      ("kernels/CalcTimeConstraintsForElems_kernel.cu",
        "CalcTimeConstraintsForElems_kernel", defs1);
   }
 
@@ -610,22 +610,22 @@ static void buildLuleshKernels(){
 
     CalcMinDtOneBlock =
       occaHandle.buildKernelFromSource
-      ("CalcMinDtOneBlock.cu",
+      ("kernels/CalcMinDtOneBlock.cu",
        "CalcMinDtOneBlock", defs1);
   }
 
 
   FillKernel =
     occaHandle.buildKernelFromSource
-    ("Fill_kernel.cu", "Fill_kernel", defs);
+    ("kernels/Fill_kernel.cu", "Fill_kernel", defs);
 
   ZeroKernel =
     occaHandle.buildKernelFromSource
-    ("Zero_kernel.cu", "Zero_kernel");
+    ("kernels/Zero_kernel.cu", "Zero_kernel");
 
   CalcVolumeForceForElems_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcVolumeForceForElems_kernel.cu",
+    ("kernels/CalcVolumeForceForElems_kernel.cu",
      "CalcVolumeForceForElems_kernel", defs);
 
 }
@@ -647,38 +647,38 @@ static void buildLuleshKernels(){
 
   AddNodeForcesFromElems_kernel =
     occaHandle.buildKernelFromSource
-    ("AddNodeForcesFromElems_kernel.occa",
+    ("kernels/AddNodeForcesFromElems_kernel.occa",
      "AddNodeForcesFromElems_kernel", defs);
 
   CalcAccelerationForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcAccelerationForNodes_kernel.occa",
+    ("kernels/CalcAccelerationForNodes_kernel.occa",
      "CalcAccelerationForNodes_kernel", defs);
 
   ApplyAccelerationBoundaryConditionsForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("ApplyAccelerationBoundaryConditionsForNodes_kernel.occa",
+    ("kernels/ApplyAccelerationBoundaryConditionsForNodes_kernel.occa",
      "ApplyAccelerationBoundaryConditionsForNodes_kernel",
      defs);
 
   CalcPositionAndVelocityForNodes_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcPositionAndVelocityForNodes_kernel.occa",
+    ("kernels/CalcPositionAndVelocityForNodes_kernel.occa",
      "CalcPositionAndVelocityForNodes_kernel", defs);
 
   CalcKinematicsAndMonotonicQGradient_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcKinematicsAndMonotonicQGradient_kernel.occa",
+    ("kernels/CalcKinematicsAndMonotonicQGradient_kernel.occa",
      "CalcKinematicsAndMonotonicQGradient_kernel", defs);
 
   CalcMonotonicQRegionForElems_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcMonotonicQRegionForElems_kernel.occa",
+    ("kernels/CalcMonotonicQRegionForElems_kernel.occa",
      "CalcMonotonicQRegionForElems_kernel", defs);
 
   ApplyMaterialPropertiesAndUpdateVolume_kernel =
     occaHandle.buildKernelFromSource
-    ("ApplyMaterialPropertiesAndUpdateVolume_kernel.occa",
+    ("kernels/ApplyMaterialPropertiesAndUpdateVolume_kernel.occa",
      "ApplyMaterialPropertiesAndUpdateVolume_kernel", defs);
 
   const int simdWidth = 32;
@@ -691,7 +691,7 @@ static void buildLuleshKernels(){
     defs1.addDefine("simdWidth", simdWidth);
     CalcTimeConstraintsForElems_kernel =
       occaHandle.buildKernelFromSource
-      ("CalcTimeConstraintsForElems_kernel.occa",
+      ("kernels/CalcTimeConstraintsForElems_kernel.occa",
        "CalcTimeConstraintsForElems_kernel", defs1);
   }
 
@@ -705,38 +705,34 @@ static void buildLuleshKernels(){
 
     CalcMinDtOneBlock =
       occaHandle.buildKernelFromSource
-      ("CalcMinDtOneBlock.occa",
+      ("kernels/CalcMinDtOneBlock.occa",
        "CalcMinDtOneBlock", defs1);
   }
 
 
   FillKernel =
     occaHandle.buildKernelFromSource
-    ("Fill_kernel.occa", "Fill_kernel", defs);
+    ("kernels/Fill_kernel.occa", "Fill_kernel", defs);
 
   ZeroKernel =
     occaHandle.buildKernelFromSource
-    ("Zero_kernel.occa", "Zero_kernel");
+    ("kernels/Zero_kernel.occa", "Zero_kernel");
 
 
   CalcVolumeForceForElems_kernel =
     occaHandle.buildKernelFromSource
-    ("CalcVolumeForceForElems_kernel.occa",
+    ("kernels/CalcVolumeForceForElems_kernel.occa",
      "CalcVolumeForceForElems_kernel", defs);
 
 }
 
 #endif
 
-static void occa_init(){
+static void occa_init(char model[], const int plat, const int dev){
 
-  int plat = 0;
-  int dev = 2;
+  occa::availableDevices<occa::OpenCL>();
 
-  //occa::availableDevices<occa::OpenCL>();
-  // occaHandle.setup("CUDA", plat, dev);
-  occaHandle.setup("OpenCL", plat, dev);
-  // occaHandle.setup("OpenMP", plat, dev);
+  occaHandle.setup(model, plat, dev);
 
   buildLuleshKernels();
 
@@ -2669,11 +2665,11 @@ void LagrangeLeapFrog(Domain* domain)
 void printUsage(char* argv[])
 {
   printf("Usage: \n");
-  printf("Unstructured grid:  %s -u <file.lmesh> \n", argv[0]) ;
-  printf("Structured grid:    %s -s numEdgeElems \n", argv[0]) ;
+  printf("Unstructured grid:  %s -u <file.lmesh> ThreadModel Platform Device \n", argv[0]) ;
+  printf("Structured grid:    %s -s numEdgeElems ThreadModel Platform Device \n", argv[0]) ;
   printf("\nExamples:\n") ;
-  printf("%s -s 45\n", argv[0]) ;
-  printf("%s -u sedov15oct.lmesh\n", argv[0]) ;
+  printf("%s -s 45 OpenCL 0 1 \n", argv[0]) ;
+  printf("%s -u sedov15oct.lmesh CUDA 1 1 \n", argv[0]) ;
 }
 
 
@@ -2835,7 +2831,7 @@ void write_solution(Domain* locDom)
 
 int main(int argc, char *argv[])
 {
-  if (argc != 3) {
+  if (argc != 6) {
     printUsage(argv);
     exit( LFileError );
   }
@@ -2850,7 +2846,7 @@ int main(int argc, char *argv[])
 
   occa::tic("initialization");
   // cuda_init();
-  occa_init();
+  occa_init(argv[3], atoi(argv[4]), atoi(argv[5]));
 
   occa::initTimer(occaHandle);
 
