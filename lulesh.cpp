@@ -8,7 +8,7 @@
 #include <assert.h>
 
 #define LULESH_SHOW_PROGRESS 1
-#define DOUBLE_PRECISION
+//#define DOUBLE_PRECISION
 //#define SAMI
 
 const int max_dimGrid = 256;
