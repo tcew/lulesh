@@ -17,7 +17,7 @@ LINKFLAGS =
 # debug: lulesh
 
 
-flags = -I${OCCA_DIR}/include -I. -m64
+flags = -I${OCCA_DIR}/include -I./include -m64
 libs   =  -L/usr/lib -L${OCCA_DIR}/lib -locca -lmpich -llapack -lblas -lm -ldl
 
 ifeq ($(DEBUG), 1)
@@ -26,11 +26,11 @@ else
 	flags += -O3 -DNDEBUG
 endif
 
-luleshOCCA: lulesh.cpp
-	$(CXX) $(flags) lulesh.cpp -o luleshOCCA $(libs)
+luleshOCCA: src/lulesh.cpp
+	$(CXX) $(flags) src/lulesh.cpp -o luleshOCCA $(libs)
 
-compareResults: compareResults.cpp
-	$(CXX) compareResults.cpp -o compareResults -lm
+compareResults: src/compareResults.cpp
+	$(CXX) src/compareResults.cpp -o compareResults -lm
 
 clean:
 	rm -rf luleshOCCA compareResults

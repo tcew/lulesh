@@ -1,5 +1,5 @@
 NVCC		= nvcc
-FLAGS		= -arch=sm_35
+FLAGS		= -arch=sm_35 -I./include
 DFLAGS	= -G -g -lineinfo
 RFLAGS 	= -O3 -DNDEBUG 
 
