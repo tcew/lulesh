@@ -1,0 +1,44 @@
+
+#include<kernelDefines.occa>
+
+occaKernel void
+CalcPositionAndVelocityForNodes_kernel(occaKernelInfoArg,
+				       const int occaVariable numNode,
+				       const Real_t occaVariable deltatime,
+				       const Real_t occaVariable u_cut,
+				       occaPointer Real_t *occaRestrict tex_x,
+				       occaPointer Real_t *occaRestrict tex_y,
+				       occaPointer Real_t *occaRestrict tex_z,
+				       occaPointer Real_t *occaRestrict tex_xd,
+				       occaPointer Real_t *occaRestrict tex_yd,
+				       occaPointer Real_t *occaRestrict tex_zd,
+				       const occaPointer Real_t* occaRestrict xdd,
+				       const occaPointer Real_t* occaRestrict ydd,
+				       const occaPointer Real_t* occaRestrict zdd){
+
+  occaGlobalFor0{
+    // // int i=blockDim.x*blockIdx.x+threadIdx.x;
+    const int i = occaGlobalId0;
+    if (i < numNode){
+
+      Real_t xdtmp, ydtmp, zdtmp, dt;
+      dt = deltatime;
+
+      xdtmp = tex_xd[i] + xdd[i] * dt ;
+      ydtmp = tex_yd[i] + ydd[i] * dt ;
+      zdtmp = tex_zd[i] + zdd[i] * dt ;
+
+      if( FABS(xdtmp) < u_cut ) xdtmp = 0.0;
+      if( FABS(ydtmp) < u_cut ) ydtmp = 0.0;
+      if( FABS(zdtmp) < u_cut ) zdtmp = 0.0;
+
+      tex_x[i] += xdtmp * dt;
+      tex_y[i] += ydtmp * dt;
+      tex_z[i] += zdtmp * dt;
+
+      tex_xd[i] = xdtmp;
+      tex_yd[i] = ydtmp;
+      tex_zd[i] = zdtmp;
+    }
+  }
+}

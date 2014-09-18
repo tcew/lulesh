@@ -1,0 +1,20 @@
+occaKernel void Zero_kernel(occaKernelInfoArg,
+			    const long occaVariable nbytes,
+			    occaPointer char *occaRestrict array){
+
+
+  occaGlobalFor0{
+
+    long i = occaGlobalId0;
+
+    while(i < nbytes){
+
+      array[i] = (char) 0;
+
+      i += occaGlobalDim0;
+
+    }
+
+  }
+
+}
