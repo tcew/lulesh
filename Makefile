@@ -24,11 +24,11 @@ debug: lulesh
 lulesh: allocator.o lulesh.o
 	$(NVCC) $(LINKFLAGS) allocator.o lulesh.o -o lulesh
 
-allocator.o: allocator.cu vector.h
-	$(NVCC) $(FLAGS) allocator.cu -I ./ -c -o allocator.o
+allocator.o: src/allocator.cu include/vector.h
+	$(NVCC) $(FLAGS) src/allocator.cu -I ./ -c -o allocator.o
 
-lulesh.o: lulesh.cu util.h vector.h texture_objAPI.h allocator.h
-	$(NVCC) $(FLAGS) lulesh.cu -I ./  $(INC_SILO) -c -o lulesh.o
+lulesh.o: src/lulesh.cu include/util.h include/vector.h include/texture_objAPI.h include/allocator.h
+	$(NVCC) $(FLAGS) src/lulesh.cu -I ./  $(INC_SILO) -c -o lulesh.o
 
 clean: 
 	rm -rf allocator.o  lulesh.o lulesh
