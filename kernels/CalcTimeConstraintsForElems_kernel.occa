@@ -50,7 +50,7 @@ void CalcTimeConstraintsForElems_kernel(occaKernelInfoArg,
       	Real_t area_tmp = arealg[indx];
       	Real_t dtf = ss_tmp * ss_tmp ;
 
-      	dtf += ((vdov_tmp < 0.) ? qqc2*area_tmp*area_tmp*vdov_tmp*vdov_tmp : 0.);
+      	dtf += ((vdov_tmp < ((Real_t) 0.)) ? qqc2*area_tmp*area_tmp*vdov_tmp*vdov_tmp : ((Real_t)0.));
 
       	dtf = area_tmp / SQRT(dtf) ;
 
