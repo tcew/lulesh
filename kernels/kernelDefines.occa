@@ -172,20 +172,20 @@ void CalcElemShapeFunctionDerivatives( const Real_t* const x,
                                        Real_t b[][8],
                                        Real_t* const volume ){
 
-  const Real_t x0 = x[0] ;   const Real_t x1 = x[1] ;
-  const Real_t x2 = x[2] ;   const Real_t x3 = x[3] ;
-  const Real_t x4 = x[4] ;   const Real_t x5 = x[5] ;
-  const Real_t x6 = x[6] ;   const Real_t x7 = x[7] ;
+  // const Real_t x0 = x[0] ;   const Real_t x1 = x[1] ;
+  // const Real_t x2 = x[2] ;   const Real_t x3 = x[3] ;
+  // const Real_t x4 = x[4] ;   const Real_t x5 = x[5] ;
+  // const Real_t x6 = x[6] ;   const Real_t x7 = x[7] ;
 
-  const Real_t y0 = y[0] ;   const Real_t y1 = y[1] ;
-  const Real_t y2 = y[2] ;   const Real_t y3 = y[3] ;
-  const Real_t y4 = y[4] ;   const Real_t y5 = y[5] ;
-  const Real_t y6 = y[6] ;   const Real_t y7 = y[7] ;
+  // const Real_t y0 = y[0] ;   const Real_t y1 = y[1] ;
+  // const Real_t y2 = y[2] ;   const Real_t y3 = y[3] ;
+  // const Real_t y4 = y[4] ;   const Real_t y5 = y[5] ;
+  // const Real_t y6 = y[6] ;   const Real_t y7 = y[7] ;
 
-  const Real_t z0 = z[0] ;   const Real_t z1 = z[1] ;
-  const Real_t z2 = z[2] ;   const Real_t z3 = z[3] ;
-  const Real_t z4 = z[4] ;   const Real_t z5 = z[5] ;
-  const Real_t z6 = z[6] ;   const Real_t z7 = z[7] ;
+  // const Real_t z0 = z[0] ;   const Real_t z1 = z[1] ;
+  // const Real_t z2 = z[2] ;   const Real_t z3 = z[3] ;
+  // const Real_t z4 = z[4] ;   const Real_t z5 = z[5] ;
+  // const Real_t z6 = z[6] ;   const Real_t z7 = z[7] ;
 
   Real_t fjxxi, fjxet, fjxze;
   Real_t fjyxi, fjyet, fjyze;
@@ -194,17 +194,32 @@ void CalcElemShapeFunctionDerivatives( const Real_t* const x,
   Real_t cjyxi, cjyet, cjyze;
   Real_t cjzxi, cjzet, cjzze;
 
-  fjxxi = ((Real_t).125) * ( (x6-x0) + (x5-x3) - (x7-x1) - (x4-x2) );
-  fjxet = ((Real_t).125) * ( (x6-x0) - (x5-x3) + (x7-x1) - (x4-x2) );
-  fjxze = ((Real_t).125) * ( (x6-x0) + (x5-x3) + (x7-x1) + (x4-x2) );
+  const Real_t x60 = x[6]-x[0];
+  const Real_t x53 = x[5]-x[3];
+  const Real_t x71 = x[7]-x[1];
+  const Real_t x42 = x[4]-x[2];
 
-  fjyxi = ((Real_t).125) * ( (y6-y0) + (y5-y3) - (y7-y1) - (y4-y2) );
-  fjyet = ((Real_t).125) * ( (y6-y0) - (y5-y3) + (y7-y1) - (y4-y2) );
-  fjyze = ((Real_t).125) * ( (y6-y0) + (y5-y3) + (y7-y1) + (y4-y2) );
+  const Real_t y60 = y[6]-y[0];
+  const Real_t y53 = y[5]-y[3];
+  const Real_t y71 = y[7]-y[1];
+  const Real_t y42 = y[4]-y[2];
 
-  fjzxi = ((Real_t).125) * ( (z6-z0) + (z5-z3) - (z7-z1) - (z4-z2) );
-  fjzet = ((Real_t).125) * ( (z6-z0) - (z5-z3) + (z7-z1) - (z4-z2) );
-  fjzze = ((Real_t).125) * ( (z6-z0) + (z5-z3) + (z7-z1) + (z4-z2) );
+  const Real_t z60 = z[6]-z[0];
+  const Real_t z53 = z[5]-z[3];
+  const Real_t z71 = z[7]-z[1];
+  const Real_t z42 = z[4]-z[2];
+
+  fjxxi = ((Real_t).125) * ( x60 + x53 - x71 - x42 );
+  fjxet = ((Real_t).125) * ( x60 - x53 + x71 - x42 );
+  fjxze = ((Real_t).125) * ( x60 + x53 + x71 + x42 );
+
+  fjyxi = ((Real_t).125) * ( y60 + y53 - y71 - y42 );
+  fjyet = ((Real_t).125) * ( y60 - y53 + y71 - y42 );
+  fjyze = ((Real_t).125) * ( y60 + y53 + y71 + y42 );
+
+  fjzxi = ((Real_t).125) * ( z60 + z53 - z71 - z42 );
+  fjzet = ((Real_t).125) * ( z60 - z53 + z71 - z42 );
+  fjzze = ((Real_t).125) * ( z60 + z53 + z71 + z42 );
 
   /* compute cofactors */
   cjxxi =    (fjyet * fjzze) - (fjzet * fjyze);

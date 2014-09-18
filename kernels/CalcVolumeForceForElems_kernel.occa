@@ -2,60 +2,61 @@
 
 occaDeviceFunction void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8], const Real_t zn[8],
 					   const Real_t dvdxn[8], const Real_t dvdyn[8], const Real_t dvdzn[8],
-					   Real_t hourgam[8][4], Real_t volinv);
+					   Real_t hourgam[8][4], const Real_t &volinv);
 
 occaDeviceFunction void CalcHourglassModes(const Real_t xn[8], const Real_t yn[8], const Real_t zn[8],
 					   const Real_t dvdxn[8], const Real_t dvdyn[8], const Real_t dvdzn[8],
-					   Real_t hourgam[8][4], Real_t volinv){
+					   Real_t hourgam[8][4], const Real_t &volinv){
   Real_t hourmodx, hourmody, hourmodz;
 
   hourmodx = xn[0] + xn[1] - xn[2] - xn[3] - xn[4] - xn[5] + xn[6] + xn[7];
   hourmody = yn[0] + yn[1] - yn[2] - yn[3] - yn[4] - yn[5] + yn[6] + yn[7];
   hourmodz = zn[0] + zn[1] - zn[2] - zn[3] - zn[4] - zn[5] + zn[6] + zn[7]; // 21
-  hourgam[0][0] =  1.0 - volinv*(dvdxn[0]*hourmodx + dvdyn[0]*hourmody + dvdzn[0]*hourmodz);
-  hourgam[1][0] =  1.0 - volinv*(dvdxn[1]*hourmodx + dvdyn[1]*hourmody + dvdzn[1]*hourmodz);
-  hourgam[2][0] = -1.0 - volinv*(dvdxn[2]*hourmodx + dvdyn[2]*hourmody + dvdzn[2]*hourmodz);
-  hourgam[3][0] = -1.0 - volinv*(dvdxn[3]*hourmodx + dvdyn[3]*hourmody + dvdzn[3]*hourmodz);
-  hourgam[4][0] = -1.0 - volinv*(dvdxn[4]*hourmodx + dvdyn[4]*hourmody + dvdzn[4]*hourmodz);
-  hourgam[5][0] = -1.0 - volinv*(dvdxn[5]*hourmodx + dvdyn[5]*hourmody + dvdzn[5]*hourmodz);
-  hourgam[6][0] =  1.0 - volinv*(dvdxn[6]*hourmodx + dvdyn[6]*hourmody + dvdzn[6]*hourmodz);
-  hourgam[7][0] =  1.0 - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz); // 60
+
+  hourgam[0][0] =  ((Real_t)  1.0) - volinv*(dvdxn[0]*hourmodx + dvdyn[0]*hourmody + dvdzn[0]*hourmodz);
+  hourgam[1][0] =  ((Real_t)  1.0) - volinv*(dvdxn[1]*hourmodx + dvdyn[1]*hourmody + dvdzn[1]*hourmodz);
+  hourgam[2][0] =  ((Real_t) -1.0) - volinv*(dvdxn[2]*hourmodx + dvdyn[2]*hourmody + dvdzn[2]*hourmodz);
+  hourgam[3][0] =  ((Real_t) -1.0) - volinv*(dvdxn[3]*hourmodx + dvdyn[3]*hourmody + dvdzn[3]*hourmodz);
+  hourgam[4][0] =  ((Real_t) -1.0) - volinv*(dvdxn[4]*hourmodx + dvdyn[4]*hourmody + dvdzn[4]*hourmodz);
+  hourgam[5][0] =  ((Real_t) -1.0) - volinv*(dvdxn[5]*hourmodx + dvdyn[5]*hourmody + dvdzn[5]*hourmodz);
+  hourgam[6][0] =  ((Real_t)  1.0) - volinv*(dvdxn[6]*hourmodx + dvdyn[6]*hourmody + dvdzn[6]*hourmodz);
+  hourgam[7][0] =  ((Real_t)  1.0) - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz); // 60
 
   hourmodx = xn[0] - xn[1] - xn[2] + xn[3] - xn[4] + xn[5] + xn[6] - xn[7];
   hourmody = yn[0] - yn[1] - yn[2] + yn[3] - yn[4] + yn[5] + yn[6] - yn[7];
   hourmodz = zn[0] - zn[1] - zn[2] + zn[3] - zn[4] + zn[5] + zn[6] - zn[7];
-  hourgam[0][1] =  1.0 - volinv*(dvdxn[0]*hourmodx + dvdyn[0]*hourmody + dvdzn[0]*hourmodz);
-  hourgam[1][1] = -1.0 - volinv*(dvdxn[1]*hourmodx + dvdyn[1]*hourmody + dvdzn[1]*hourmodz);
-  hourgam[2][1] = -1.0 - volinv*(dvdxn[2]*hourmodx + dvdyn[2]*hourmody + dvdzn[2]*hourmodz);
-  hourgam[3][1] =  1.0 - volinv*(dvdxn[3]*hourmodx + dvdyn[3]*hourmody + dvdzn[3]*hourmodz);
-  hourgam[4][1] = -1.0 - volinv*(dvdxn[4]*hourmodx + dvdyn[4]*hourmody + dvdzn[4]*hourmodz);
-  hourgam[5][1] =  1.0 - volinv*(dvdxn[5]*hourmodx + dvdyn[5]*hourmody + dvdzn[5]*hourmodz);
-  hourgam[6][1] =  1.0 - volinv*(dvdxn[6]*hourmodx + dvdyn[6]*hourmody + dvdzn[6]*hourmodz);
-  hourgam[7][1] = -1.0 - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz);
+  hourgam[0][1] =  ((Real_t)  1.0) - volinv*(dvdxn[0]*hourmodx + dvdyn[0]*hourmody + dvdzn[0]*hourmodz);
+  hourgam[1][1] =  ((Real_t) -1.0) - volinv*(dvdxn[1]*hourmodx + dvdyn[1]*hourmody + dvdzn[1]*hourmodz);
+  hourgam[2][1] =  ((Real_t) -1.0) - volinv*(dvdxn[2]*hourmodx + dvdyn[2]*hourmody + dvdzn[2]*hourmodz);
+  hourgam[3][1] =  ((Real_t)  1.0) - volinv*(dvdxn[3]*hourmodx + dvdyn[3]*hourmody + dvdzn[3]*hourmodz);
+  hourgam[4][1] =  ((Real_t) -1.0) - volinv*(dvdxn[4]*hourmodx + dvdyn[4]*hourmody + dvdzn[4]*hourmodz);
+  hourgam[5][1] =  ((Real_t)  1.0) - volinv*(dvdxn[5]*hourmodx + dvdyn[5]*hourmody + dvdzn[5]*hourmodz);
+  hourgam[6][1] =  ((Real_t)  1.0) - volinv*(dvdxn[6]*hourmodx + dvdyn[6]*hourmody + dvdzn[6]*hourmodz);
+  hourgam[7][1] =  ((Real_t) -1.0) - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz);
 
   hourmodx = xn[0] - xn[1] + xn[2] - xn[3] + xn[4] - xn[5] + xn[6] - xn[7];
   hourmody = yn[0] - yn[1] + yn[2] - yn[3] + yn[4] - yn[5] + yn[6] - yn[7];
   hourmodz = zn[0] - zn[1] + zn[2] - zn[3] + zn[4] - zn[5] + zn[6] - zn[7];
-  hourgam[0][2] =  1.0 - volinv*(dvdxn[0]*hourmodx + dvdyn[0]*hourmody + dvdzn[0]*hourmodz);
-  hourgam[1][2] = -1.0 - volinv*(dvdxn[1]*hourmodx + dvdyn[1]*hourmody + dvdzn[1]*hourmodz);
-  hourgam[2][2] =  1.0 - volinv*(dvdxn[2]*hourmodx + dvdyn[2]*hourmody + dvdzn[2]*hourmodz);
-  hourgam[3][2] = -1.0 - volinv*(dvdxn[3]*hourmodx + dvdyn[3]*hourmody + dvdzn[3]*hourmodz);
-  hourgam[4][2] =  1.0 - volinv*(dvdxn[4]*hourmodx + dvdyn[4]*hourmody + dvdzn[4]*hourmodz);
-  hourgam[5][2] = -1.0 - volinv*(dvdxn[5]*hourmodx + dvdyn[5]*hourmody + dvdzn[5]*hourmodz);
-  hourgam[6][2] =  1.0 - volinv*(dvdxn[6]*hourmodx + dvdyn[6]*hourmody + dvdzn[6]*hourmodz);
-  hourgam[7][2] = -1.0 - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz);
+  hourgam[0][2] =  ((Real_t)  1.0) - volinv*(dvdxn[0]*hourmodx + dvdyn[0]*hourmody + dvdzn[0]*hourmodz);
+  hourgam[1][2] =  ((Real_t) -1.0) - volinv*(dvdxn[1]*hourmodx + dvdyn[1]*hourmody + dvdzn[1]*hourmodz);
+  hourgam[2][2] =  ((Real_t)  1.0) - volinv*(dvdxn[2]*hourmodx + dvdyn[2]*hourmody + dvdzn[2]*hourmodz);
+  hourgam[3][2] =  ((Real_t) -1.0) - volinv*(dvdxn[3]*hourmodx + dvdyn[3]*hourmody + dvdzn[3]*hourmodz);
+  hourgam[4][2] =  ((Real_t)  1.0) - volinv*(dvdxn[4]*hourmodx + dvdyn[4]*hourmody + dvdzn[4]*hourmodz);
+  hourgam[5][2] =  ((Real_t) -1.0) - volinv*(dvdxn[5]*hourmodx + dvdyn[5]*hourmody + dvdzn[5]*hourmodz);
+  hourgam[6][2] =  ((Real_t)  1.0) - volinv*(dvdxn[6]*hourmodx + dvdyn[6]*hourmody + dvdzn[6]*hourmodz);
+  hourgam[7][2] =  ((Real_t) -1.0) - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz);
 
   hourmodx = -xn[0] + xn[1] - xn[2] + xn[3] + xn[4] - xn[5] + xn[6] - xn[7];
   hourmody = -yn[0] + yn[1] - yn[2] + yn[3] + yn[4] - yn[5] + yn[6] - yn[7];
   hourmodz = -zn[0] + zn[1] - zn[2] + zn[3] + zn[4] - zn[5] + zn[6] - zn[7];
-  hourgam[0][3] = -1.0 - volinv*(dvdxn[0]*hourmodx + dvdyn[0]*hourmody + dvdzn[0]*hourmodz);
-  hourgam[1][3] =  1.0 - volinv*(dvdxn[1]*hourmodx + dvdyn[1]*hourmody + dvdzn[1]*hourmodz);
-  hourgam[2][3] = -1.0 - volinv*(dvdxn[2]*hourmodx + dvdyn[2]*hourmody + dvdzn[2]*hourmodz);
-  hourgam[3][3] =  1.0 - volinv*(dvdxn[3]*hourmodx + dvdyn[3]*hourmody + dvdzn[3]*hourmodz);
-  hourgam[4][3] =  1.0 - volinv*(dvdxn[4]*hourmodx + dvdyn[4]*hourmody + dvdzn[4]*hourmodz);
-  hourgam[5][3] = -1.0 - volinv*(dvdxn[5]*hourmodx + dvdyn[5]*hourmody + dvdzn[5]*hourmodz);
-  hourgam[6][3] =  1.0 - volinv*(dvdxn[6]*hourmodx + dvdyn[6]*hourmody + dvdzn[6]*hourmodz);
-  hourgam[7][3] = -1.0 - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz);
+  hourgam[0][3] = ((Real_t) -1.0) - volinv*(dvdxn[0]*hourmodx + dvdyn[0]*hourmody + dvdzn[0]*hourmodz);
+  hourgam[1][3] = ((Real_t)  1.0) - volinv*(dvdxn[1]*hourmodx + dvdyn[1]*hourmody + dvdzn[1]*hourmodz);
+  hourgam[2][3] = ((Real_t) -1.0) - volinv*(dvdxn[2]*hourmodx + dvdyn[2]*hourmody + dvdzn[2]*hourmodz);
+  hourgam[3][3] = ((Real_t)  1.0) - volinv*(dvdxn[3]*hourmodx + dvdyn[3]*hourmody + dvdzn[3]*hourmodz);
+  hourgam[4][3] = ((Real_t)  1.0) - volinv*(dvdxn[4]*hourmodx + dvdyn[4]*hourmody + dvdzn[4]*hourmodz);
+  hourgam[5][3] = ((Real_t) -1.0) - volinv*(dvdxn[5]*hourmodx + dvdyn[5]*hourmody + dvdzn[5]*hourmodz);
+  hourgam[6][3] = ((Real_t)  1.0) - volinv*(dvdxn[6]*hourmodx + dvdyn[6]*hourmody + dvdzn[6]*hourmodz);
+  hourgam[7][3] = ((Real_t) -1.0) - volinv*(dvdxn[7]*hourmodx + dvdyn[7]*hourmody + dvdzn[7]*hourmodz);
 
 }
 
@@ -70,196 +71,196 @@ occaDeviceFunction void CalcElemFBHourglassForce(Real_t *xd, Real_t *yd, Real_t 
 						 Real_t *hourgam4, Real_t *hourgam5, Real_t *hourgam6,
 						 Real_t *hourgam7, Real_t coefficient,
 						 Real_t *hgfx, Real_t *hgfy, Real_t *hgfz ){
-  Index_t i00=0;
-  Index_t i01=1;
-  Index_t i02=2;
-  Index_t i03=3;
+  // Index_t i00=0;
+  // Index_t i01=1;
+  // Index_t i02=2;
+  // Index_t i03=3;
 
   Real_t h00 =
-    hourgam0[i00] * xd[0] + hourgam1[i00] * xd[1] +
-    hourgam2[i00] * xd[2] + hourgam3[i00] * xd[3] +
-    hourgam4[i00] * xd[4] + hourgam5[i00] * xd[5] +
-    hourgam6[i00] * xd[6] + hourgam7[i00] * xd[7];
+    hourgam0[0] * xd[0] + hourgam1[0] * xd[1] +
+    hourgam2[0] * xd[2] + hourgam3[0] * xd[3] +
+    hourgam4[0] * xd[4] + hourgam5[0] * xd[5] +
+    hourgam6[0] * xd[6] + hourgam7[0] * xd[7];
 
   Real_t h01 =
-    hourgam0[i01] * xd[0] + hourgam1[i01] * xd[1] +
-    hourgam2[i01] * xd[2] + hourgam3[i01] * xd[3] +
-    hourgam4[i01] * xd[4] + hourgam5[i01] * xd[5] +
-    hourgam6[i01] * xd[6] + hourgam7[i01] * xd[7];
+    hourgam0[1] * xd[0] + hourgam1[1] * xd[1] +
+    hourgam2[1] * xd[2] + hourgam3[1] * xd[3] +
+    hourgam4[1] * xd[4] + hourgam5[1] * xd[5] +
+    hourgam6[1] * xd[6] + hourgam7[1] * xd[7];
 
   Real_t h02 =
-    hourgam0[i02] * xd[0] + hourgam1[i02] * xd[1]+
-    hourgam2[i02] * xd[2] + hourgam3[i02] * xd[3]+
-    hourgam4[i02] * xd[4] + hourgam5[i02] * xd[5]+
-    hourgam6[i02] * xd[6] + hourgam7[i02] * xd[7];
+    hourgam0[2] * xd[0] + hourgam1[2] * xd[1]+
+    hourgam2[2] * xd[2] + hourgam3[2] * xd[3]+
+    hourgam4[2] * xd[4] + hourgam5[2] * xd[5]+
+    hourgam6[2] * xd[6] + hourgam7[2] * xd[7];
 
   Real_t h03 =
-    hourgam0[i03] * xd[0] + hourgam1[i03] * xd[1] +
-    hourgam2[i03] * xd[2] + hourgam3[i03] * xd[3] +
-    hourgam4[i03] * xd[4] + hourgam5[i03] * xd[5] +
-    hourgam6[i03] * xd[6] + hourgam7[i03] * xd[7];
+    hourgam0[3] * xd[0] + hourgam1[3] * xd[1] +
+    hourgam2[3] * xd[2] + hourgam3[3] * xd[3] +
+    hourgam4[3] * xd[4] + hourgam5[3] * xd[5] +
+    hourgam6[3] * xd[6] + hourgam7[3] * xd[7];
 
   hgfx[0] += coefficient *
-    (hourgam0[i00] * h00 + hourgam0[i01] * h01 +
-     hourgam0[i02] * h02 + hourgam0[i03] * h03);
+    (hourgam0[0] * h00 + hourgam0[1] * h01 +
+     hourgam0[2] * h02 + hourgam0[3] * h03);
 
   hgfx[1] += coefficient *
-    (hourgam1[i00] * h00 + hourgam1[i01] * h01 +
-     hourgam1[i02] * h02 + hourgam1[i03] * h03);
+    (hourgam1[0] * h00 + hourgam1[1] * h01 +
+     hourgam1[2] * h02 + hourgam1[3] * h03);
 
   hgfx[2] += coefficient *
-    (hourgam2[i00] * h00 + hourgam2[i01] * h01 +
-     hourgam2[i02] * h02 + hourgam2[i03] * h03);
+    (hourgam2[0] * h00 + hourgam2[1] * h01 +
+     hourgam2[2] * h02 + hourgam2[3] * h03);
 
   hgfx[3] += coefficient *
-    (hourgam3[i00] * h00 + hourgam3[i01] * h01 +
-     hourgam3[i02] * h02 + hourgam3[i03] * h03);
+    (hourgam3[0] * h00 + hourgam3[1] * h01 +
+     hourgam3[2] * h02 + hourgam3[3] * h03);
 
   hgfx[4] += coefficient *
-    (hourgam4[i00] * h00 + hourgam4[i01] * h01 +
-     hourgam4[i02] * h02 + hourgam4[i03] * h03);
+    (hourgam4[0] * h00 + hourgam4[1] * h01 +
+     hourgam4[2] * h02 + hourgam4[3] * h03);
 
   hgfx[5] += coefficient *
-    (hourgam5[i00] * h00 + hourgam5[i01] * h01 +
-     hourgam5[i02] * h02 + hourgam5[i03] * h03);
+    (hourgam5[0] * h00 + hourgam5[1] * h01 +
+     hourgam5[2] * h02 + hourgam5[3] * h03);
 
   hgfx[6] += coefficient *
-    (hourgam6[i00] * h00 + hourgam6[i01] * h01 +
-     hourgam6[i02] * h02 + hourgam6[i03] * h03);
+    (hourgam6[0] * h00 + hourgam6[1] * h01 +
+     hourgam6[2] * h02 + hourgam6[3] * h03);
 
   hgfx[7] += coefficient *
-    (hourgam7[i00] * h00 + hourgam7[i01] * h01 +
-     hourgam7[i02] * h02 + hourgam7[i03] * h03);
+    (hourgam7[0] * h00 + hourgam7[1] * h01 +
+     hourgam7[2] * h02 + hourgam7[3] * h03);
 
   h00 =
-    hourgam0[i00] * yd[0] + hourgam1[i00] * yd[1] +
-    hourgam2[i00] * yd[2] + hourgam3[i00] * yd[3] +
-    hourgam4[i00] * yd[4] + hourgam5[i00] * yd[5] +
-    hourgam6[i00] * yd[6] + hourgam7[i00] * yd[7];
+    hourgam0[0] * yd[0] + hourgam1[0] * yd[1] +
+    hourgam2[0] * yd[2] + hourgam3[0] * yd[3] +
+    hourgam4[0] * yd[4] + hourgam5[0] * yd[5] +
+    hourgam6[0] * yd[6] + hourgam7[0] * yd[7];
 
   h01 =
-    hourgam0[i01] * yd[0] + hourgam1[i01] * yd[1] +
-    hourgam2[i01] * yd[2] + hourgam3[i01] * yd[3] +
-    hourgam4[i01] * yd[4] + hourgam5[i01] * yd[5] +
-    hourgam6[i01] * yd[6] + hourgam7[i01] * yd[7];
+    hourgam0[1] * yd[0] + hourgam1[1] * yd[1] +
+    hourgam2[1] * yd[2] + hourgam3[1] * yd[3] +
+    hourgam4[1] * yd[4] + hourgam5[1] * yd[5] +
+    hourgam6[1] * yd[6] + hourgam7[1] * yd[7];
 
   h02 =
-    hourgam0[i02] * yd[0] + hourgam1[i02] * yd[1]+
-    hourgam2[i02] * yd[2] + hourgam3[i02] * yd[3]+
-    hourgam4[i02] * yd[4] + hourgam5[i02] * yd[5]+
-    hourgam6[i02] * yd[6] + hourgam7[i02] * yd[7];
+    hourgam0[2] * yd[0] + hourgam1[2] * yd[1]+
+    hourgam2[2] * yd[2] + hourgam3[2] * yd[3]+
+    hourgam4[2] * yd[4] + hourgam5[2] * yd[5]+
+    hourgam6[2] * yd[6] + hourgam7[2] * yd[7];
 
   h03 =
-    hourgam0[i03] * yd[0] + hourgam1[i03] * yd[1] +
-    hourgam2[i03] * yd[2] + hourgam3[i03] * yd[3] +
-    hourgam4[i03] * yd[4] + hourgam5[i03] * yd[5] +
-    hourgam6[i03] * yd[6] + hourgam7[i03] * yd[7];
+    hourgam0[3] * yd[0] + hourgam1[3] * yd[1] +
+    hourgam2[3] * yd[2] + hourgam3[3] * yd[3] +
+    hourgam4[3] * yd[4] + hourgam5[3] * yd[5] +
+    hourgam6[3] * yd[6] + hourgam7[3] * yd[7];
 
 
   hgfy[0] += coefficient *
-    (hourgam0[i00] * h00 + hourgam0[i01] * h01 +
-     hourgam0[i02] * h02 + hourgam0[i03] * h03);
+    (hourgam0[0] * h00 + hourgam0[1] * h01 +
+     hourgam0[2] * h02 + hourgam0[3] * h03);
 
   hgfy[1] += coefficient *
-    (hourgam1[i00] * h00 + hourgam1[i01] * h01 +
-     hourgam1[i02] * h02 + hourgam1[i03] * h03);
+    (hourgam1[0] * h00 + hourgam1[1] * h01 +
+     hourgam1[2] * h02 + hourgam1[3] * h03);
 
   hgfy[2] += coefficient *
-    (hourgam2[i00] * h00 + hourgam2[i01] * h01 +
-     hourgam2[i02] * h02 + hourgam2[i03] * h03);
+    (hourgam2[0] * h00 + hourgam2[1] * h01 +
+     hourgam2[2] * h02 + hourgam2[3] * h03);
 
   hgfy[3] += coefficient *
-    (hourgam3[i00] * h00 + hourgam3[i01] * h01 +
-     hourgam3[i02] * h02 + hourgam3[i03] * h03);
+    (hourgam3[0] * h00 + hourgam3[1] * h01 +
+     hourgam3[2] * h02 + hourgam3[3] * h03);
 
   hgfy[4] += coefficient *
-    (hourgam4[i00] * h00 + hourgam4[i01] * h01 +
-     hourgam4[i02] * h02 + hourgam4[i03] * h03);
+    (hourgam4[0] * h00 + hourgam4[1] * h01 +
+     hourgam4[2] * h02 + hourgam4[3] * h03);
 
   hgfy[5] += coefficient *
-    (hourgam5[i00] * h00 + hourgam5[i01] * h01 +
-     hourgam5[i02] * h02 + hourgam5[i03] * h03);
+    (hourgam5[0] * h00 + hourgam5[1] * h01 +
+     hourgam5[2] * h02 + hourgam5[3] * h03);
 
   hgfy[6] += coefficient *
-    (hourgam6[i00] * h00 + hourgam6[i01] * h01 +
-     hourgam6[i02] * h02 + hourgam6[i03] * h03);
+    (hourgam6[0] * h00 + hourgam6[1] * h01 +
+     hourgam6[2] * h02 + hourgam6[3] * h03);
 
   hgfy[7] += coefficient *
-    (hourgam7[i00] * h00 + hourgam7[i01] * h01 +
-     hourgam7[i02] * h02 + hourgam7[i03] * h03);
+    (hourgam7[0] * h00 + hourgam7[1] * h01 +
+     hourgam7[2] * h02 + hourgam7[3] * h03);
 
   h00 =
-    hourgam0[i00] * zd[0] + hourgam1[i00] * zd[1] +
-    hourgam2[i00] * zd[2] + hourgam3[i00] * zd[3] +
-    hourgam4[i00] * zd[4] + hourgam5[i00] * zd[5] +
-    hourgam6[i00] * zd[6] + hourgam7[i00] * zd[7];
+    hourgam0[0] * zd[0] + hourgam1[0] * zd[1] +
+    hourgam2[0] * zd[2] + hourgam3[0] * zd[3] +
+    hourgam4[0] * zd[4] + hourgam5[0] * zd[5] +
+    hourgam6[0] * zd[6] + hourgam7[0] * zd[7];
 
   h01 =
-    hourgam0[i01] * zd[0] + hourgam1[i01] * zd[1] +
-    hourgam2[i01] * zd[2] + hourgam3[i01] * zd[3] +
-    hourgam4[i01] * zd[4] + hourgam5[i01] * zd[5] +
-    hourgam6[i01] * zd[6] + hourgam7[i01] * zd[7];
+    hourgam0[1] * zd[0] + hourgam1[1] * zd[1] +
+    hourgam2[1] * zd[2] + hourgam3[1] * zd[3] +
+    hourgam4[1] * zd[4] + hourgam5[1] * zd[5] +
+    hourgam6[1] * zd[6] + hourgam7[1] * zd[7];
 
   h02 =
-    hourgam0[i02] * zd[0] + hourgam1[i02] * zd[1]+
-    hourgam2[i02] * zd[2] + hourgam3[i02] * zd[3]+
-    hourgam4[i02] * zd[4] + hourgam5[i02] * zd[5]+
-    hourgam6[i02] * zd[6] + hourgam7[i02] * zd[7];
+    hourgam0[2] * zd[0] + hourgam1[2] * zd[1]+
+    hourgam2[2] * zd[2] + hourgam3[2] * zd[3]+
+    hourgam4[2] * zd[4] + hourgam5[2] * zd[5]+
+    hourgam6[2] * zd[6] + hourgam7[2] * zd[7];
 
   h03 =
-    hourgam0[i03] * zd[0] + hourgam1[i03] * zd[1] +
-    hourgam2[i03] * zd[2] + hourgam3[i03] * zd[3] +
-    hourgam4[i03] * zd[4] + hourgam5[i03] * zd[5] +
-    hourgam6[i03] * zd[6] + hourgam7[i03] * zd[7];
+    hourgam0[3] * zd[0] + hourgam1[3] * zd[1] +
+    hourgam2[3] * zd[2] + hourgam3[3] * zd[3] +
+    hourgam4[3] * zd[4] + hourgam5[3] * zd[5] +
+    hourgam6[3] * zd[6] + hourgam7[3] * zd[7];
 
 
   hgfz[0] += coefficient *
-    (hourgam0[i00] * h00 + hourgam0[i01] * h01 +
-     hourgam0[i02] * h02 + hourgam0[i03] * h03);
+    (hourgam0[0] * h00 + hourgam0[1] * h01 +
+     hourgam0[2] * h02 + hourgam0[3] * h03);
 
   hgfz[1] += coefficient *
-    (hourgam1[i00] * h00 + hourgam1[i01] * h01 +
-     hourgam1[i02] * h02 + hourgam1[i03] * h03);
+    (hourgam1[0] * h00 + hourgam1[1] * h01 +
+     hourgam1[2] * h02 + hourgam1[3] * h03);
 
   hgfz[2] += coefficient *
-    (hourgam2[i00] * h00 + hourgam2[i01] * h01 +
-     hourgam2[i02] * h02 + hourgam2[i03] * h03);
+    (hourgam2[0] * h00 + hourgam2[1] * h01 +
+     hourgam2[2] * h02 + hourgam2[3] * h03);
 
   hgfz[3] += coefficient *
-    (hourgam3[i00] * h00 + hourgam3[i01] * h01 +
-     hourgam3[i02] * h02 + hourgam3[i03] * h03);
+    (hourgam3[0] * h00 + hourgam3[1] * h01 +
+     hourgam3[2] * h02 + hourgam3[3] * h03);
 
   hgfz[4] += coefficient *
-    (hourgam4[i00] * h00 + hourgam4[i01] * h01 +
-     hourgam4[i02] * h02 + hourgam4[i03] * h03);
+    (hourgam4[0] * h00 + hourgam4[1] * h01 +
+     hourgam4[2] * h02 + hourgam4[3] * h03);
 
   hgfz[5] += coefficient *
-    (hourgam5[i00] * h00 + hourgam5[i01] * h01 +
-     hourgam5[i02] * h02 + hourgam5[i03] * h03);
+    (hourgam5[0] * h00 + hourgam5[1] * h01 +
+     hourgam5[2] * h02 + hourgam5[3] * h03);
 
   hgfz[6] += coefficient *
-    (hourgam6[i00] * h00 + hourgam6[i01] * h01 +
-     hourgam6[i02] * h02 + hourgam6[i03] * h03);
+    (hourgam6[0] * h00 + hourgam6[1] * h01 +
+     hourgam6[2] * h02 + hourgam6[3] * h03);
 
   hgfz[7] += coefficient *
-    (hourgam7[i00] * h00 + hourgam7[i01] * h01 +
-     hourgam7[i02] * h02 + hourgam7[i03] * h03);
+    (hourgam7[0] * h00 + hourgam7[1] * h01 +
+     hourgam7[2] * h02 + hourgam7[3] * h03);
 }
 
-occaDeviceFunction void VoluDer(const Real_t x0, const Real_t x1, const Real_t x2,
-				const Real_t x3, const Real_t x4, const Real_t x5,
-				const Real_t y0, const Real_t y1, const Real_t y2,
-				const Real_t y3, const Real_t y4, const Real_t y5,
-				const Real_t z0, const Real_t z1, const Real_t z2,
-				const Real_t z3, const Real_t z4, const Real_t z5,
+occaDeviceFunction void VoluDer(const Real_t &x0, const Real_t &x1, const Real_t &x2,
+				const Real_t &x3, const Real_t &x4, const Real_t &x5,
+				const Real_t &y0, const Real_t &y1, const Real_t &y2,
+				const Real_t &y3, const Real_t &y4, const Real_t &y5,
+				const Real_t &z0, const Real_t &z1, const Real_t &z2,
+				const Real_t &z3, const Real_t &z4, const Real_t &z5,
 				Real_t* dvdx, Real_t* dvdy, Real_t* dvdz);
 
-occaDeviceFunction void VoluDer(const Real_t x0, const Real_t x1, const Real_t x2,
-				const Real_t x3, const Real_t x4, const Real_t x5,
-				const Real_t y0, const Real_t y1, const Real_t y2,
-				const Real_t y3, const Real_t y4, const Real_t y5,
-				const Real_t z0, const Real_t z1, const Real_t z2,
-				const Real_t z3, const Real_t z4, const Real_t z5,
+occaDeviceFunction void VoluDer(const Real_t &x0, const Real_t &x1, const Real_t &x2,
+				const Real_t &x3, const Real_t &x4, const Real_t &x5,
+				const Real_t &y0, const Real_t &y1, const Real_t &y2,
+				const Real_t &y3, const Real_t &y4, const Real_t &y5,
+				const Real_t &z0, const Real_t &z1, const Real_t &z2,
+				const Real_t &z3, const Real_t &z4, const Real_t &z5,
 				Real_t* dvdx, Real_t* dvdy, Real_t* dvdz){
 
   const Real_t twelfth = ((Real_t) 1.0) / ((Real_t) 12.0) ;
@@ -343,20 +344,20 @@ SumElemFaceNormal(Real_t *normalX0, Real_t *normalY0, Real_t *normalZ0,
 		  Real_t *normalX1, Real_t *normalY1, Real_t *normalZ1,
 		  Real_t *normalX2, Real_t *normalY2, Real_t *normalZ2,
 		  Real_t *normalX3, Real_t *normalY3, Real_t *normalZ3,
-		  const Real_t x0, const Real_t y0, const Real_t z0,
-		  const Real_t x1, const Real_t y1, const Real_t z1,
-		  const Real_t x2, const Real_t y2, const Real_t z2,
-		  const Real_t x3, const Real_t y3, const Real_t z3);
+		  const Real_t &x0, const Real_t &y0, const Real_t &z0,
+		  const Real_t &x1, const Real_t &y1, const Real_t &z1,
+		  const Real_t &x2, const Real_t &y2, const Real_t &z2,
+		  const Real_t &x3, const Real_t &y3, const Real_t &z3);
 
 occaDeviceFunction void
 SumElemFaceNormal(Real_t *normalX0, Real_t *normalY0, Real_t *normalZ0,
 		  Real_t *normalX1, Real_t *normalY1, Real_t *normalZ1,
 		  Real_t *normalX2, Real_t *normalY2, Real_t *normalZ2,
 		  Real_t *normalX3, Real_t *normalY3, Real_t *normalZ3,
-		  const Real_t x0, const Real_t y0, const Real_t z0,
-		  const Real_t x1, const Real_t y1, const Real_t z1,
-		  const Real_t x2, const Real_t y2, const Real_t z2,
-		  const Real_t x3, const Real_t y3, const Real_t z3){
+		  const Real_t &x0, const Real_t &y0, const Real_t &z0,
+		  const Real_t &x1, const Real_t &y1, const Real_t &z1,
+		  const Real_t &x2, const Real_t &y2, const Real_t &z2,
+		  const Real_t &x3, const Real_t &y3, const Real_t &z3){
 
 
   Real_t bisectX0 = ((Real_t) 0.5) * (x3 + x2 - x1 - x0);
